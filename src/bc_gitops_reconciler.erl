@@ -58,12 +58,13 @@ start_link(Config) ->
 reconcile() ->
     gen_server:call(?SERVER, reconcile, 30000).
 
--spec status() -> {ok, map()} | {error, not_running}.
+-spec status() -> {ok, map()} | {error, not_running | busy}.
 status() ->
     try
-        gen_server:call(?SERVER, status)
+        gen_server:call(?SERVER, status, 1000)
     catch
-        exit:{noproc, _} -> {error, not_running}
+        exit:{noproc, _} -> {error, not_running};
+        exit:{timeout, _} -> {error, busy}
     end.
 
 -spec get_desired_state() -> {ok, map()} | {error, term()}.
