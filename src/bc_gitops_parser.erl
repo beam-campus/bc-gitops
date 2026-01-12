@@ -3,46 +3,9 @@
 %%% This module parses application specifications from the git repository.
 %%% It supports multiple configuration formats:
 %%%
-%%% <ul>
-%%% <li>Erlang term files (`.app.config`, `.config`)</li>
-%%% <li>JSON files (`.json`)</li>
-%%% </ul>
+%%% - Erlang term files (.app.config, .config)
+%%% - JSON files (.json)
 %%%
-%%% == Directory Structure ==
-%%%
-%%% The apps directory should contain one subdirectory per application:
-%%% ```
-%%% apps/
-%%%   my_app/
-%%%     app.config    # Application specification
-%%%   another_app/
-%%%     app.json      # JSON format also supported
-%%% '''
-%%%
-%%% == Configuration Format (Erlang) ==
-%%%
-%%% ```
-%%% #{
-%%%     name => my_app,
-%%%     version => <<"1.0.0">>,
-%%%     source => #{
-%%%         type => hex,
-%%%         %% or: type => git, url => <<"...">>, ref => <<"main">>
-%%%         %% or: type => release, url => <<"...">>, sha256 => <<"...">>
-%%%     },
-%%%     env => #{
-%%%         key => value
-%%%     },
-%%%     depends_on => [other_app],
-%%%     health => #{
-%%%         type => http,
-%%%         port => 8080,
-%%%         path => <<"/health">>,
-%%%         interval => 30000,
-%%%         timeout => 5000
-%%%     }
-%%% }.
-%%% '''
 %%% @end
 -module(bc_gitops_parser).
 
@@ -107,7 +70,7 @@ parse_app_config(Config) when is_map(Config) ->
 
 %% @doc Parse an application configuration from a file.
 %%
-%% Supports `.config`, `.app.config` (Erlang terms) and `.json` files.
+%% Supports .config, .app.config (Erlang terms) and .json files.
 -spec parse_app_config_file(file:filename()) -> {ok, #app_spec{}} | {error, term()}.
 parse_app_config_file(FilePath) ->
     case filename:extension(FilePath) of
@@ -233,9 +196,7 @@ atomize_keys(Map) when is_map(Map) ->
         end,
         #{},
         Map
-    );
-atomize_keys(Other) ->
-    Other.
+    ).
 
 -spec atomize_value(term()) -> term().
 atomize_value(V) when is_map(V) -> atomize_keys(V);
@@ -291,13 +252,12 @@ get_required(Field, Config, ExpectedType) ->
             throw({missing_field, Field})
     end.
 
--spec validate_type(atom(), term(), atom()) -> term().
+-spec validate_type(atom(), term(), atom | binary) -> term().
 validate_type(_Field, Value, atom) when is_atom(Value) -> Value;
 validate_type(_Field, Value, atom) when is_binary(Value) -> binary_to_atom(Value, utf8);
 validate_type(_Field, Value, atom) when is_list(Value) -> list_to_atom(Value);
 validate_type(_Field, Value, binary) when is_binary(Value) -> Value;
 validate_type(_Field, Value, binary) when is_list(Value) -> list_to_binary(Value);
-validate_type(_Field, Value, integer) when is_integer(Value) -> Value;
 validate_type(Field, Value, ExpectedType) ->
     throw({invalid_type, Field, ExpectedType, type_of(Value)}).
 

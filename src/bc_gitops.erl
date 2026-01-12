@@ -23,14 +23,12 @@
 %%%
 %%% == Configuration ==
 %%%
-%%% <ul>
-%%% <li>`repo_url' - Git repository URL (required)</li>
-%%% <li>`local_path' - Local clone path (default: /var/lib/bc_gitops)</li>
-%%% <li>`branch' - Git branch to track (default: main)</li>
-%%% <li>`apps_dir' - Directory within repo containing app specs (default: apps)</li>
-%%% <li>`reconcile_interval' - Interval between reconciliations in ms (default: 60000)</li>
-%%% <li>`runtime_module' - Module implementing bc_gitops_runtime behaviour</li>
-%%% </ul>
+%%% - repo_url: Git repository URL (required)
+%%% - local_path: Local clone path (default: /var/lib/bc_gitops)
+%%% - branch: Git branch to track (default: main)
+%%% - apps_dir: Directory within repo containing app specs (default: apps)
+%%% - reconcile_interval: Interval between reconciliations in ms (default: 60000)
+%%% - runtime_module: Module implementing bc_gitops_runtime behaviour
 %%%
 %%% @end
 -module(bc_gitops).
@@ -135,12 +133,10 @@ sync() ->
 %% @doc Get the current reconciler status.
 %%
 %% Returns a map containing:
-%% <ul>
-%% <li>`status' - Current reconciler status (initializing | ready | synced | degraded | error)</li>
-%% <li>`last_commit' - SHA of the last processed commit</li>
-%% <li>`app_count' - Number of managed applications</li>
-%% <li>`healthy_count' - Number of healthy applications</li>
-%% </ul>
+%% - status: Current reconciler status (initializing | ready | synced | degraded | error)
+%% - last_commit: SHA of the last processed commit
+%% - app_count: Number of managed applications
+%% - healthy_count: Number of healthy applications
 -spec status() -> {ok, map()} | {error, not_running}.
 status() ->
     bc_gitops_reconciler:status().

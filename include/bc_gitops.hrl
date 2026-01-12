@@ -62,7 +62,7 @@
 
 -record(reconciler_state, {
     repo_url :: binary(),
-    local_path :: file:filename(),
+    local_path :: binary(),
     branch :: binary(),
     apps_dir :: binary(),
     runtime_module :: module(),

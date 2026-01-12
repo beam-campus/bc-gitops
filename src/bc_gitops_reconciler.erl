@@ -92,10 +92,10 @@ upgrade(AppName, NewVersion) ->
 
 init(Config) ->
     State = #reconciler_state{
-        repo_url = maps:get(repo_url, Config),
-        local_path = maps:get(local_path, Config),
-        branch = maps:get(branch, Config),
-        apps_dir = maps:get(apps_dir, Config),
+        repo_url = to_binary(maps:get(repo_url, Config)),
+        local_path = to_binary(maps:get(local_path, Config)),
+        branch = to_binary(maps:get(branch, Config)),
+        apps_dir = to_binary(maps:get(apps_dir, Config)),
         runtime_module = maps:get(runtime_module, Config),
         reconcile_interval = maps:get(reconcile_interval, Config),
         last_commit = undefined,
@@ -106,6 +106,12 @@ init(Config) ->
     %% Start reconciliation loop
     self() ! init_reconcile,
     {ok, State}.
+
+%% @doc Convert a value to binary (for config normalization).
+-spec to_binary(binary() | string() | atom()) -> binary().
+to_binary(V) when is_binary(V) -> V;
+to_binary(V) when is_list(V) -> list_to_binary(V);
+to_binary(V) when is_atom(V) -> atom_to_binary(V, utf8).
 
 handle_call(reconcile, _From, State) ->
     case do_reconcile(State) of
@@ -532,15 +538,22 @@ determine_status(_Errors, _CurrentState) ->
 -spec all_healthy(map()) -> boolean().
 all_healthy(CurrentState) ->
     lists:all(
-        fun(#app_state{health = Health, status = Status}) ->
-            Health =:= healthy andalso Status =:= running
+        fun(AppState) ->
+            case AppState of
+                #app_state{health = Health, status = Status} ->
+                    Health =:= healthy andalso Status =:= running;
+                _ ->
+                    false
+            end
         end,
         maps:values(CurrentState)
     ).
 
 -spec count_healthy(map()) -> non_neg_integer().
 count_healthy(CurrentState) ->
-    length([1 || #app_state{health = healthy} <- maps:values(CurrentState)]).
+    length([1 || V <- maps:values(CurrentState),
+                 is_record(V, app_state),
+                 V#app_state.health =:= healthy]).
 
 %% -----------------------------------------------------------------------------
 %% Internal functions - Manual operations

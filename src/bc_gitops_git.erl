@@ -4,18 +4,9 @@
 %%% querying repository state. It uses the system git command
 %%% for maximum compatibility.
 %%%
-%%% == Authentication ==
-%%%
 %%% Git authentication is handled through standard git mechanisms:
-%%% <ul>
-%%% <li>SSH keys (~/.ssh/id_rsa, ssh-agent)</li>
-%%% <li>Git credential helpers</li>
-%%% <li>Inline credentials in URL (not recommended)</li>
-%%% <li>GIT_ASKPASS environment variable</li>
-%%% </ul>
-%%%
-%%% For CI/CD environments, SSH deploy keys or personal access
-%%% tokens are recommended.
+%%% SSH keys, credential helpers, or inline URL credentials.
+%%% For CI/CD environments, SSH deploy keys are recommended.
 %%% @end
 -module(bc_gitops_git).
 
