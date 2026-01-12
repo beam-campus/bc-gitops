@@ -103,22 +103,17 @@ remove(AppName) ->
 %% @doc Upgrade an application with hot code reloading.
 %%
 %% This function:
-%% 1. Fetches the new version (if not already in code path)
+%% 1. Fetches the new version (always - upgrades require fresh code)
 %% 2. Performs hot code reload (suspends processes, loads new modules, resumes)
 %% 3. Updates state tracking
 -spec upgrade(#app_spec{}, binary()) -> {ok, #app_state{}} | {error, term()}.
 upgrade(AppSpec, OldVersion) ->
     #app_spec{name = Name, version = NewVersion, source = Source, env = Env} = AppSpec,
 
-    %% Check if already in code path (pre-installed dependency)
-    FetchResult = case code:lib_dir(Name) of
-        {error, bad_name} ->
-            %% Not in code path - need to fetch
-            bc_gitops_workspace:fetch_package(Name, Source);
-        _LibDir ->
-            %% Already available
-            {ok, already_loaded}
-    end,
+    %% Always fetch for upgrades - we need the new version's code
+    %% Delete existing workspace to ensure fresh clone with new ref
+    bc_gitops_workspace:delete_package(Name),
+    FetchResult = bc_gitops_workspace:fetch_package(Name, Source),
 
     case FetchResult of
         {ok, _} ->

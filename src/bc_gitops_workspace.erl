@@ -15,6 +15,7 @@
     init/1,
     fetch_package/2,
     remove_package/1,
+    delete_package/1,
     get_package_path/1,
     get_ebin_paths/1,
     cleanup/0
@@ -61,6 +62,7 @@ fetch_package(_Name, #source_spec{type = Type}) ->
     {error, {unsupported_source_type, Type}}.
 
 %% @doc Remove a package from the workspace.
+%% Removes code paths and deletes the directory.
 -spec remove_package(atom()) -> ok | {error, term()}.
 remove_package(Name) ->
     PackageDir = get_package_dir(Name),
@@ -69,6 +71,19 @@ remove_package(Name) ->
             %% Remove code paths first
             remove_code_paths(Name),
             %% Then delete directory
+            delete_dir_recursive(PackageDir);
+        false ->
+            ok
+    end.
+
+%% @doc Delete a package's workspace directory without removing code paths.
+%% Used during upgrades - we need to delete the old workspace to fetch
+%% the new version, but keep old code paths until hot reload completes.
+-spec delete_package(atom()) -> ok | {error, term()}.
+delete_package(Name) ->
+    PackageDir = get_package_dir(Name),
+    case filelib:is_dir(PackageDir) of
+        true ->
             delete_dir_recursive(PackageDir);
         false ->
             ok
