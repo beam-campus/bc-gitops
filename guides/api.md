@@ -91,7 +91,7 @@ The `bc_gitops_runtime_default` module provides a fully functional implementatio
 
 - Fetches packages from hex.pm (rebar3/mix)
 - Clones and compiles git repositories
-- Hot code reloading during upgrades
+- Clean restarts on version upgrades (v0.3.0+)
 - Automatic code path management
 
 ## Workspace API (v0.2.0+)

@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-01-12
+
+### Changed
+
+- **bc_gitops_runtime_default**: Version upgrades now restart the application
+  - Ensures clean initialization (routes, supervisors, app metadata)
+  - Fixes issue where `application:get_key/2` returned stale cached values
+  - Hot code reload still available for same-version code changes via `bc_gitops_hot_reload`
+
+- **Upgrade flow**: Always fetches fresh code for upgrades
+  - Deletes existing workspace before fetching new version
+  - Ensures clean build with correct ref/tag
+
+### Added
+
+- **Detailed telemetry events** for build pipeline visibility:
+  - `[:bc_gitops, :git, :clone_start]` / `[:bc_gitops, :git, :clone_stop]`
+  - `[:bc_gitops, :deps, :start]` / `[:bc_gitops, :deps, :stop]`
+  - `[:bc_gitops, :build, :start]` / `[:bc_gitops, :build, :stop]`
+  - `[:bc_gitops, :code, :load]`
+  - All events include app name, tool used, and success/failure status
+
+### Fixed
+
+- Handle timeout gracefully in `bc_gitops:status/0` call
+
 ## [0.2.1] - 2026-01-12
 
 ### Added
@@ -65,7 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/beam-campus/bc-gitops/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/beam-campus/bc-gitops/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/beam-campus/bc-gitops/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/beam-campus/bc-gitops/releases/tag/v0.1.0
