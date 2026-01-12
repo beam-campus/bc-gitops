@@ -2,6 +2,8 @@
 
 The runtime module is the heart of bc_gitops customization. It defines *how* applications are deployed, upgraded, and removed. This guide covers different implementation strategies from simple to advanced.
 
+> **Note (v0.3.0+):** The default runtime (`bc_gitops_runtime_default`) now **restarts** applications on version upgrades rather than hot-reloading. This ensures clean initialization of routes, supervisors, and application metadata. For same-version code changes (e.g., tracking a branch), you can still use `bc_gitops_hot_reload` directly.
+
 ## The bc_gitops_runtime Behaviour
 
 Every runtime must implement the `bc_gitops_runtime` behaviour:
@@ -26,7 +28,7 @@ Every runtime must implement the `bc_gitops_runtime` behaviour:
 
 ## Strategy 1: Simple Start/Stop (Default)
 
-The simplest strategy stops the old version and starts the new one. This is what `bc_gitops_runtime_default` does:
+The simplest strategy stops the old version and starts the new one. This is what `bc_gitops_runtime_default` does for version upgrades (v0.3.0+):
 
 ```erlang
 -module(simple_runtime).
@@ -75,10 +77,13 @@ make_state(Name, Version, Env) ->
 **Pros:**
 - Simple to implement
 - Works with any OTP application
+- Clean initialization (routes, supervisors, metadata all fresh)
 
 **Cons:**
-- Downtime during upgrades
+- Brief downtime during upgrades
 - Connections are dropped
+
+> For same-version code changes where you want zero-downtime, use `bc_gitops_hot_reload` directly.
 
 ## Strategy 2: Hot Code Upgrade
 

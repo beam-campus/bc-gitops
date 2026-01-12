@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-01-13
+
+### Added
+
+- **Elixir Getting Started Guide** (`guides/getting_started_elixir.md`)
+  - Full walkthrough for Elixir users
+  - Elixir-specific configuration examples
+  - Telemetry setup with Elixir module
+  - Custom runtime implementation in Elixir
+
+### Changed
+
+- **Documentation improvements**:
+  - Added "Why Restart on Upgrade?" section to getting started guides
+  - Updated architecture.svg to v0.3.0
+  - Clarified hot_reload_flow.svg is for same-version changes
+  - Updated runtime_implementation.md with v0.3.0+ notes
+  - Renamed "Getting Started" to "Getting Started (Erlang)" in navigation
+
 ## [0.3.0] - 2026-01-12
 
 ### Changed
@@ -91,7 +110,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/beam-campus/bc-gitops/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/beam-campus/bc-gitops/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/beam-campus/bc-gitops/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/beam-campus/bc-gitops/compare/v0.1.0...v0.2.0

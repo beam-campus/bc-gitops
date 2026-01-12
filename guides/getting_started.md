@@ -26,7 +26,7 @@ Add to your `rebar.config`:
 
 ```erlang
 {deps, [
-    {bc_gitops, "0.3.0"}
+    {bc_gitops, "0.3.1"}
 ]}.
 ```
 
@@ -37,7 +37,7 @@ Add to your `mix.exs`:
 ```elixir
 def deps do
   [
-    {:bc_gitops, "~> 0.3.0"}
+    {:bc_gitops, "~> 0.3.1"}
   ]
 end
 ```
@@ -119,6 +119,20 @@ bc_gitops needs to know *how* to deploy applications. As of v0.3.0, the built-in
 - **Code path management** - automatically adds compiled modules to the VM
 
 > **Note:** Hot code reload is available via `bc_gitops_hot_reload` module for same-version code changes (e.g., branch tracking during development).
+
+### Why Restart on Upgrade?
+
+Version upgrades restart the application rather than hot-reloading because several things in OTP cannot be updated at runtime:
+
+1. **Application metadata** - `application:get_key/2` reads from a cache populated at app start. Hot reload doesn't refresh this cache, so `vsn`, `description`, and custom keys return stale values.
+
+2. **Cowboy/HTTP routes** - Routes are compiled into the dispatch table when `cowboy:start_clear/3` is called. New routes added in an upgrade won't be registered without restarting the listener.
+
+3. **Supervision trees** - New child specs, changed restart strategies, or restructured supervisors require the supervisor to restart.
+
+4. **Application environment** - While `application:set_env/3` can update values, many applications read config only at startup.
+
+For **same-version code changes** (e.g., tracking a `master` branch during development), hot reload works well because you're only updating module bytecode, not structural changes.
 
 For most use cases, the default runtime works out of the box. For custom requirements, implement the `bc_gitops_runtime` behaviour.
 
