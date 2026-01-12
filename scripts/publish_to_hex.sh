@@ -7,8 +7,17 @@
 # Prerequisites:
 #   - rebar3 installed
 #   - hex authentication configured (rebar3 hex user auth)
+#   - Source secrets: source ~/.config/zshrc/01-secrets
+#
+# NOTE: rebar3 hex publish will prompt for "Local Password"
+#       This is HEX_USER_LOCAL_PASSWORD from your secrets file.
 #
 set -euo pipefail
+
+# Source secrets if available
+if [[ -f ~/.config/zshrc/01-secrets ]]; then
+    source ~/.config/zshrc/01-secrets
+fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
@@ -45,11 +54,13 @@ rebar3 hex build
 echo ""
 echo "==> Package built successfully!"
 echo ""
-echo "To publish, run:"
-echo "  rebar3 hex publish"
+echo "==> Publishing to hex.pm..."
 echo ""
-echo "To publish docs only:"
-echo "  rebar3 hex publish docs"
+echo "NOTE: When prompted for 'Local Password', enter: \$HEX_USER_LOCAL_PASSWORD"
+echo "      (from ~/.config/zshrc/01-secrets)"
 echo ""
-echo "NOTE: You must be authenticated with hex.pm"
-echo "      Run 'rebar3 hex user auth' if needed"
+
+rebar3 hex publish --yes
+
+echo ""
+echo "==> Done! Package published to hex.pm"
