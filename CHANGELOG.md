@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-01-13
+
+### Added
+
+- **YAML config file support** (`.yaml`, `.yml`)
+  - Requires optional `yamerl` dependency
+  - Full support for all app spec fields
+  - Automatic conversion of YAML keys to atoms
+
+- **Enhanced JSON support**
+  - Uses OTP 27+ native `json` module
+  - Clear error messages for older OTP versions
+
+### Changed
+
+- **Config file search order** now includes YAML:
+  1. `app.config` (Erlang terms)
+  2. `app.yaml` / `app.yml` (YAML)
+  3. `app.json` (JSON)
+  4. `config.*` variants
+
+- **Documentation updates**:
+  - Added YAML and JSON examples to getting started guides
+  - Added "App Config File Formats" section to API reference
+  - Documented optional dependencies for YAML/JSON
+
 ## [0.3.1] - 2026-01-13
 
 ### Added
@@ -110,7 +136,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/beam-campus/bc-gitops/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/beam-campus/bc-gitops/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/beam-campus/bc-gitops/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/beam-campus/bc-gitops/compare/v0.2.0...v0.2.1

@@ -243,6 +243,30 @@ Configure via `sys.config` or `application:set_env/3`:
 | `reconcile_interval` | integer | `60000` | Reconcile interval (ms) |
 | `runtime_module` | atom | `bc_gitops_runtime_default` | Runtime implementation |
 
+## App Config File Formats
+
+bc_gitops supports three configuration formats for app specs:
+
+| Format | Extension | Requirements |
+|--------|-----------|--------------|
+| Erlang terms | `.config` | None (built-in) |
+| YAML | `.yaml`, `.yml` | `yamerl` dependency |
+| JSON | `.json` | OTP 27+ or `jsx`/`jiffy` |
+
+**File search order:** `app.config` → `app.yaml` → `app.yml` → `app.json` → `config.*`
+
+### Optional Dependencies
+
+```erlang
+%% For YAML support:
+{yamerl, "0.10.0"}
+
+%% For JSON on OTP < 27:
+{jsx, "3.1.0"}
+%% or
+{jiffy, "1.1.1"}
+```
+
 Example configuration:
 
 ```erlang

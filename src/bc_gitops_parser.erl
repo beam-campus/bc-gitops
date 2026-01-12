@@ -4,7 +4,8 @@
 %%% It supports multiple configuration formats:
 %%%
 %%% - Erlang term files (.app.config, .config)
-%%% - JSON files (.json)
+%%% - JSON files (.json) - requires OTP 27+ or jsx/jiffy
+%%% - YAML files (.yaml, .yml) - requires yamerl dependency
 %%%
 %%% @end
 -module(bc_gitops_parser).
@@ -70,12 +71,19 @@ parse_app_config(Config) when is_map(Config) ->
 
 %% @doc Parse an application configuration from a file.
 %%
-%% Supports .config, .app.config (Erlang terms) and .json files.
+%% Supports:
+%% - .config, .app.config (Erlang terms)
+%% - .json (JSON - requires OTP 27+ or jsx/jiffy)
+%% - .yaml, .yml (YAML - requires yamerl dependency)
 -spec parse_app_config_file(file:filename()) -> {ok, #app_spec{}} | {error, term()}.
 parse_app_config_file(FilePath) ->
     case filename:extension(FilePath) of
         ".json" ->
             parse_json_config_file(FilePath);
+        ".yaml" ->
+            parse_yaml_config_file(FilePath);
+        ".yml" ->
+            parse_yaml_config_file(FilePath);
         _ ->
             parse_erlang_config_file(FilePath)
     end.
@@ -111,7 +119,11 @@ find_and_parse_app_config(AppDir) ->
     %% Look for config files in order of preference
     ConfigFiles = [
         filename:join(AppDir, "app.config"),
+        filename:join(AppDir, "app.yaml"),
+        filename:join(AppDir, "app.yml"),
         filename:join(AppDir, "app.json"),
+        filename:join(AppDir, "config.yaml"),
+        filename:join(AppDir, "config.yml"),
         filename:join(AppDir, "config.json"),
         filename:join(AppDir, "config")
     ],
@@ -164,6 +176,24 @@ parse_json_config_file(FilePath) ->
             {error, {file_read_error, Reason}}
     end.
 
+-spec parse_yaml_config_file(file:filename()) -> {ok, #app_spec{}} | {error, term()}.
+parse_yaml_config_file(FilePath) ->
+    case file:read_file(FilePath) of
+        {ok, Content} ->
+            case yaml_decode(Content) of
+                {ok, Config} when is_map(Config) ->
+                    %% Convert string keys to atoms
+                    AtomConfig = atomize_keys(Config),
+                    parse_app_config(AtomConfig);
+                {ok, _Other} ->
+                    {error, {invalid_yaml, expected_map}};
+                {error, Reason} ->
+                    {error, {yaml_decode_error, Reason}}
+            end;
+        {error, Reason} ->
+            {error, {file_read_error, Reason}}
+    end.
+
 %% @doc Decode JSON using OTP 27+ json module or fallback.
 -spec json_decode(binary()) -> {ok, term()} | {error, term()}.
 json_decode(Binary) ->
@@ -185,6 +215,64 @@ simple_json_decode(_Binary) ->
     %% This is a minimal fallback - in production, consider adding
     %% jsx or jiffy as an optional dependency
     {error, {json_not_supported, <<"OTP < 27 requires json module">>}}.
+
+%% @doc Decode YAML using yamerl library.
+%%
+%% Requires yamerl to be available. Add to your deps:
+%% {yamerl, "0.10.0"}
+-spec yaml_decode(binary()) -> {ok, term()} | {error, term()}.
+yaml_decode(Binary) ->
+    try
+        %% Check if yamerl is available
+        case code:ensure_loaded(yamerl_constr) of
+            {module, yamerl_constr} ->
+                %% Parse YAML using yamerl
+                Docs = yamerl_constr:string(binary_to_list(Binary), [
+                    {detailed_constr, false},
+                    {str_node_as_binary, true}
+                ]),
+                case Docs of
+                    [Doc] ->
+                        {ok, yaml_to_map(Doc)};
+                    [] ->
+                        {error, empty_document};
+                    _Multiple ->
+                        %% Take first document if multiple
+                        {ok, yaml_to_map(hd(Docs))}
+                end;
+            {error, _} ->
+                {error, {yaml_not_supported, <<"yamerl library not available. Add {yamerl, \"0.10.0\"} to deps.">>}}
+        end
+    catch
+        throw:{yamerl_exception, Errors} ->
+            {error, {yaml_parse_error, Errors}};
+        error:Reason ->
+            {error, Reason}
+    end.
+
+%% @doc Convert yamerl proplist output to maps recursively.
+-spec yaml_to_map(term()) -> term().
+yaml_to_map(List) when is_list(List) ->
+    case is_proplist(List) of
+        true ->
+            maps:from_list([{yaml_key_to_atom(K), yaml_to_map(V)} || {K, V} <- List]);
+        false ->
+            [yaml_to_map(E) || E <- List]
+    end;
+yaml_to_map(Value) ->
+    Value.
+
+%% @doc Check if a list is a proplist (list of 2-tuples).
+-spec is_proplist(list()) -> boolean().
+is_proplist([]) -> true;
+is_proplist([{_, _} | Rest]) -> is_proplist(Rest);
+is_proplist(_) -> false.
+
+%% @doc Convert YAML key to atom.
+-spec yaml_key_to_atom(term()) -> atom().
+yaml_key_to_atom(K) when is_binary(K) -> binary_to_atom(K, utf8);
+yaml_key_to_atom(K) when is_list(K) -> list_to_atom(K);
+yaml_key_to_atom(K) when is_atom(K) -> K.
 
 -spec atomize_keys(map()) -> map().
 atomize_keys(Map) when is_map(Map) ->
@@ -214,7 +302,7 @@ to_atom(S) when is_list(S) -> list_to_atom(S).
 
 -spec parse_source_spec(map()) -> #source_spec{}.
 parse_source_spec(Source) when is_map(Source) ->
-    Type = maps:get(type, Source, hex),
+    Type = to_atom_or_default(maps:get(type, Source, hex), hex),
     #source_spec{
         type = Type,
         url = maps:get(url, Source, undefined),
@@ -229,15 +317,23 @@ parse_health_spec(undefined) ->
     undefined;
 parse_health_spec(Health) when is_map(Health) ->
     #health_spec{
-        type = maps:get(type, Health, http),
+        type = to_atom_or_default(maps:get(type, Health, http), http),
         port = maps:get(port, Health, 8080),
         path = maps:get(path, Health, undefined),
         interval = maps:get(interval, Health, 30000),
         timeout = maps:get(timeout, Health, 5000),
-        module = maps:get(module, Health, undefined)
+        module = to_atom_or_default(maps:get(module, Health, undefined), undefined)
     };
 parse_health_spec(_) ->
     undefined.
+
+%% @doc Convert value to atom, or return default if undefined/conversion fails.
+-spec to_atom_or_default(term(), atom()) -> atom().
+to_atom_or_default(undefined, Default) -> Default;
+to_atom_or_default(V, _Default) when is_atom(V) -> V;
+to_atom_or_default(V, _Default) when is_binary(V) -> binary_to_atom(V, utf8);
+to_atom_or_default(V, _Default) when is_list(V) -> list_to_atom(V);
+to_atom_or_default(_, Default) -> Default.
 
 %% -----------------------------------------------------------------------------
 %% Internal functions - Validation

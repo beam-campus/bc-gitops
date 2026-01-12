@@ -25,7 +25,7 @@ Add to your `mix.exs`:
 ```elixir
 def deps do
   [
-    {:bc_gitops, "~> 0.3.0"}
+    {:bc_gitops, "~> 0.4.0"}
   ]
 end
 ```
@@ -59,44 +59,95 @@ Create a specification file for each application you want to manage. Let's creat
 mkdir apps/my_web_app
 ```
 
+bc_gitops supports three configuration formats. For Elixir projects, **YAML is recommended** for its clean syntax:
+
+### Option A: YAML (`app.yaml`) - Recommended for Elixir
+
+> **Note:** Requires `yamerl` dependency. Add `{:yamerl, "~> 0.10.0"}` to your deps.
+
+Create `apps/my_web_app/app.yaml`:
+
+```yaml
+name: my_web_app
+version: "1.0.0"
+
+source:
+  type: hex
+  # Or for git:
+  # type: git
+  # url: https://github.com/myorg/my_web_app.git
+  # ref: v1.0.0
+
+env:
+  port: 8080
+  pool_size: 10
+
+health:
+  type: http
+  port: 8080
+  path: /health
+  interval: 30000
+  timeout: 5000
+
+depends_on: []
+```
+
+### Option B: JSON (`app.json`)
+
+> **Note:** Requires OTP 27+ for native JSON support.
+
+Create `apps/my_web_app/app.json`:
+
+```json
+{
+  "name": "my_web_app",
+  "version": "1.0.0",
+  "source": {
+    "type": "hex"
+  },
+  "env": {
+    "port": 8080,
+    "pool_size": 10
+  },
+  "health": {
+    "type": "http",
+    "port": 8080,
+    "path": "/health",
+    "interval": 30000,
+    "timeout": 5000
+  },
+  "depends_on": []
+}
+```
+
+### Option C: Erlang Terms (`app.config`)
+
 Create `apps/my_web_app/app.config`:
 
 ```erlang
 #{
-    %% Application name (must match the OTP application name)
     name => my_web_app,
-
-    %% Version to deploy
     version => <<"1.0.0">>,
-
-    %% Where to get the application from
-    source => #{
-        type => hex  %% From hex.pm
-        %% Or for git:
-        %% type => git,
-        %% url => <<"https://github.com/myorg/my_web_app.git">>,
-        %% ref => <<"v1.0.0">>
-    },
-
-    %% Application environment (passed to Application.put_env)
-    env => #{
-        port => 8080,
-        pool_size => 10
-    },
-
-    %% Health check configuration (optional)
+    source => #{type => hex},
+    env => #{port => 8080, pool_size => 10},
     health => #{
         type => http,
         port => 8080,
         path => <<"/health">>,
-        interval => 30000,  %% Check every 30 seconds
-        timeout => 5000     %% Timeout after 5 seconds
+        interval => 30000,
+        timeout => 5000
     },
-
-    %% Dependencies (other managed apps that must start first)
     depends_on => []
 }.
 ```
+
+### Config File Priority
+
+bc_gitops looks for config files in this order:
+1. `app.config` (Erlang terms)
+2. `app.yaml` / `app.yml` (YAML)
+3. `app.json` (JSON)
+4. `config.yaml` / `config.yml` / `config.json` / `config`
 
 Commit and push:
 
