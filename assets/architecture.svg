@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 700" width="900" height="700">
   <defs>
     <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
@@ -7,13 +7,19 @@
     <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
       <polygon points="0 0, 10 3.5, 0 7" fill="#4A90D9"/>
     </marker>
+    <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4CAF50"/>
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9C27B0"/>
+    </marker>
   </defs>
 
   <!-- Background -->
-  <rect width="800" height="600" fill="#fafafa"/>
+  <rect width="900" height="700" fill="#fafafa"/>
 
   <!-- Title -->
-  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">bc_gitops Architecture</text>
+  <text x="450" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">bc_gitops Architecture (v0.2.0)</text>
 
   <!-- Git Repository (External) -->
   <rect x="30" y="80" width="140" height="80" rx="8" fill="#f5f5f5" stroke="#999" stroke-width="2"/>
@@ -21,12 +27,17 @@
   <text x="100" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#888">apps/</text>
   <text x="100" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#888">├── app_a/</text>
 
+  <!-- Hex.pm (External) -->
+  <rect x="30" y="180" width="140" height="50" rx="8" fill="#f5f5f5" stroke="#999" stroke-width="2"/>
+  <text x="100" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#666">hex.pm</text>
+  <text x="100" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#888">packages</text>
+
   <!-- bc_gitops_sup box -->
-  <rect x="220" y="60" width="540" height="480" rx="10" fill="none" stroke="#4A90D9" stroke-width="2" stroke-dasharray="5,5"/>
+  <rect x="220" y="60" width="640" height="580" rx="10" fill="none" stroke="#4A90D9" stroke-width="2" stroke-dasharray="5,5"/>
   <text x="240" y="85" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#4A90D9">bc_gitops_sup (supervisor)</text>
 
   <!-- bc_gitops_reconciler box -->
-  <rect x="250" y="100" width="480" height="320" rx="8" fill="#E8F4FD" stroke="#4A90D9" stroke-width="2"/>
+  <rect x="250" y="100" width="580" height="230" rx="8" fill="#E8F4FD" stroke="#4A90D9" stroke-width="2"/>
   <text x="270" y="125" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#333">bc_gitops_reconciler (gen_server)</text>
 
   <!-- Reconcile Loop Steps -->
@@ -46,85 +57,125 @@
   <text x="590" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">State</text>
 
   <!-- Step 4: Apply Actions -->
-  <rect x="410" y="230" width="100" height="50" rx="6" fill="#fff" stroke="#666" stroke-width="1.5"/>
-  <text x="460" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333">4. Apply</text>
-  <text x="460" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Actions</text>
+  <rect x="670" y="150" width="100" height="50" rx="6" fill="#fff" stroke="#666" stroke-width="1.5"/>
+  <text x="720" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333">4. Apply</text>
+  <text x="720" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Actions</text>
 
   <!-- Arrows between steps -->
   <line x1="380" y1="175" x2="405" y2="175" stroke="#666" stroke-width="1.5" marker-end="url(#arrowhead)"/>
   <line x1="510" y1="175" x2="535" y2="175" stroke="#666" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-  <path d="M 590 200 L 590 220 L 515 220 L 515 225" fill="none" stroke="#666" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <line x1="640" y1="175" x2="665" y2="175" stroke="#666" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
   <!-- Module boxes below steps -->
   <!-- bc_gitops_git -->
-  <rect x="280" y="310" width="100" height="40" rx="4" fill="#FFF3E0" stroke="#FF9800" stroke-width="1.5"/>
-  <text x="330" y="335" text-anchor="middle" font-family="monospace" font-size="10" fill="#E65100">bc_gitops_git</text>
+  <rect x="280" y="230" width="100" height="40" rx="4" fill="#FFF3E0" stroke="#FF9800" stroke-width="1.5"/>
+  <text x="330" y="255" text-anchor="middle" font-family="monospace" font-size="10" fill="#E65100">bc_gitops_git</text>
 
   <!-- bc_gitops_parser -->
-  <rect x="410" y="310" width="100" height="40" rx="4" fill="#FFF3E0" stroke="#FF9800" stroke-width="1.5"/>
-  <text x="460" y="335" text-anchor="middle" font-family="monospace" font-size="10" fill="#E65100">bc_gitops_parser</text>
+  <rect x="410" y="230" width="100" height="40" rx="4" fill="#FFF3E0" stroke="#FF9800" stroke-width="1.5"/>
+  <text x="460" y="255" text-anchor="middle" font-family="monospace" font-size="10" fill="#E65100">bc_gitops_parser</text>
 
   <!-- Runtime Module -->
-  <rect x="540" y="310" width="100" height="40" rx="4" fill="#E8F5E9" stroke="#4CAF50" stroke-width="1.5"/>
-  <text x="590" y="328" text-anchor="middle" font-family="monospace" font-size="10" fill="#2E7D32">runtime_module</text>
-  <text x="590" y="342" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#666">(user-provided)</text>
+  <rect x="540" y="230" width="120" height="40" rx="4" fill="#E8F5E9" stroke="#4CAF50" stroke-width="1.5"/>
+  <text x="600" y="248" text-anchor="middle" font-family="monospace" font-size="9" fill="#2E7D32">runtime_default</text>
+  <text x="600" y="262" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#666">(or custom)</text>
 
   <!-- Arrows from steps to modules -->
-  <line x1="330" y1="200" x2="330" y2="305" stroke="#FF9800" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arrowhead)"/>
-  <line x1="460" y1="200" x2="460" y2="305" stroke="#FF9800" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arrowhead)"/>
-  <line x1="460" y1="280" x2="560" y2="305" stroke="#4CAF50" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arrowhead)"/>
+  <line x1="330" y1="200" x2="330" y2="225" stroke="#FF9800" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arrowhead)"/>
+  <line x1="460" y1="200" x2="460" y2="225" stroke="#FF9800" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arrowhead)"/>
+  <line x1="720" y1="200" x2="660" y2="225" stroke="#4CAF50" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arrowhead-green)"/>
 
-  <!-- State boxes -->
-  <!-- Desired State -->
-  <rect x="280" y="370" width="120" height="60" rx="6" fill="#E3F2FD" stroke="#2196F3" stroke-width="1.5"/>
-  <text x="340" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#1565C0">Desired State</text>
-  <text x="340" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">(from Git repo)</text>
+  <!-- New in v0.2.0 section -->
+  <rect x="250" y="350" width="580" height="160" rx="8" fill="#F3E5F5" stroke="#9C27B0" stroke-width="2"/>
+  <text x="270" y="375" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#7B1FA2">Default Runtime Infrastructure (v0.2.0)</text>
 
-  <!-- Current State -->
-  <rect x="520" y="370" width="120" height="60" rx="6" fill="#F3E5F5" stroke="#9C27B0" stroke-width="1.5"/>
-  <text x="580" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#7B1FA2">Current State</text>
-  <text x="580" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">(from Runtime)</text>
+  <!-- bc_gitops_workspace -->
+  <rect x="280" y="395" width="160" height="60" rx="6" fill="#fff" stroke="#9C27B0" stroke-width="1.5"/>
+  <text x="360" y="418" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#7B1FA2">bc_gitops_workspace</text>
+  <text x="360" y="435" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">Fetch hex/git packages</text>
+  <text x="360" y="448" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">Compile &amp; manage paths</text>
+
+  <!-- bc_gitops_hot_reload -->
+  <rect x="480" y="395" width="160" height="60" rx="6" fill="#fff" stroke="#9C27B0" stroke-width="1.5"/>
+  <text x="560" y="418" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#7B1FA2">bc_gitops_hot_reload</text>
+  <text x="560" y="435" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">Suspend processes</text>
+  <text x="560" y="448" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">Reload modules</text>
+
+  <!-- Build tools icons -->
+  <rect x="680" y="395" width="120" height="60" rx="6" fill="#ECEFF1" stroke="#607D8B" stroke-width="1.5"/>
+  <text x="740" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#455A64">Build Tools</text>
+  <text x="740" y="433" text-anchor="middle" font-family="monospace" font-size="9" fill="#666">rebar3 | mix</text>
+  <text x="740" y="448" text-anchor="middle" font-family="monospace" font-size="9" fill="#666">erlang.mk</text>
+
+  <!-- Arrows from runtime to workspace/hot_reload -->
+  <line x1="600" y1="270" x2="400" y2="390" stroke="#9C27B0" stroke-width="1.5" marker-end="url(#arrowhead-purple)"/>
+  <line x1="600" y1="270" x2="560" y2="390" stroke="#9C27B0" stroke-width="1.5" marker-end="url(#arrowhead-purple)"/>
+
+  <!-- Arrow from workspace to build tools -->
+  <line x1="440" y1="425" x2="675" y2="425" stroke="#607D8B" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arrowhead)"/>
+
+  <!-- Arrow from hex.pm to workspace -->
+  <line x1="170" y1="205" x2="275" y2="405" stroke="#999" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
   <!-- Arrow from Git to reconciler -->
   <line x1="170" y1="120" x2="275" y2="175" stroke="#666" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
+  <!-- State boxes -->
+  <!-- Desired State -->
+  <rect x="250" y="530" width="140" height="50" rx="6" fill="#E3F2FD" stroke="#2196F3" stroke-width="1.5"/>
+  <text x="320" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#1565C0">Desired State</text>
+  <text x="320" y="570" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">(from Git repo)</text>
+
+  <!-- Current State -->
+  <rect x="420" y="530" width="140" height="50" rx="6" fill="#F3E5F5" stroke="#9C27B0" stroke-width="1.5"/>
+  <text x="490" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#7B1FA2">Current State</text>
+  <text x="490" y="570" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">(from Runtime)</text>
+
   <!-- Telemetry output -->
-  <rect x="250" y="450" width="140" height="45" rx="6" fill="#fff" stroke="#607D8B" stroke-width="1.5"/>
-  <text x="320" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#455A64">Telemetry Events</text>
-  <text x="320" y="485" text-anchor="middle" font-family="monospace" font-size="8" fill="#78909C">[bc_gitops, ...]</text>
+  <rect x="250" y="600" width="140" height="45" rx="6" fill="#fff" stroke="#607D8B" stroke-width="1.5"/>
+  <text x="320" y="620" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#455A64">Telemetry Events</text>
+  <text x="320" y="635" text-anchor="middle" font-family="monospace" font-size="8" fill="#78909C">[bc_gitops, ...]</text>
 
   <!-- OTP Applications (managed) -->
-  <rect x="550" y="450" width="180" height="80" rx="8" fill="#ECEFF1" stroke="#607D8B" stroke-width="1.5"/>
-  <text x="640" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#455A64">Managed Applications</text>
-  <g transform="translate(570, 490)">
-    <rect width="45" height="30" rx="4" fill="#fff" stroke="#90A4AE"/>
-    <text x="22" y="20" text-anchor="middle" font-family="monospace" font-size="8" fill="#546E7A">app_a</text>
+  <rect x="590" y="530" width="240" height="100" rx="8" fill="#ECEFF1" stroke="#607D8B" stroke-width="1.5"/>
+  <text x="710" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#455A64">Managed Applications</text>
+  <g transform="translate(610, 570)">
+    <rect width="50" height="35" rx="4" fill="#fff" stroke="#90A4AE"/>
+    <text x="25" y="15" text-anchor="middle" font-family="monospace" font-size="8" fill="#546E7A">app_a</text>
+    <text x="25" y="28" text-anchor="middle" font-family="Arial, sans-serif" font-size="7" fill="#888">running</text>
   </g>
-  <g transform="translate(625, 490)">
-    <rect width="45" height="30" rx="4" fill="#fff" stroke="#90A4AE"/>
-    <text x="22" y="20" text-anchor="middle" font-family="monospace" font-size="8" fill="#546E7A">app_b</text>
+  <g transform="translate(670, 570)">
+    <rect width="50" height="35" rx="4" fill="#fff" stroke="#90A4AE"/>
+    <text x="25" y="15" text-anchor="middle" font-family="monospace" font-size="8" fill="#546E7A">app_b</text>
+    <text x="25" y="28" text-anchor="middle" font-family="Arial, sans-serif" font-size="7" fill="#888">running</text>
   </g>
-  <g transform="translate(680, 490)">
-    <rect width="40" height="30" rx="4" fill="#fff" stroke="#90A4AE"/>
-    <text x="20" y="20" text-anchor="middle" font-family="monospace" font-size="8" fill="#546E7A">...</text>
+  <g transform="translate(730, 570)">
+    <rect width="50" height="35" rx="4" fill="#fff" stroke="#90A4AE"/>
+    <text x="25" y="15" text-anchor="middle" font-family="monospace" font-size="8" fill="#546E7A">app_c</text>
+    <text x="25" y="28" text-anchor="middle" font-family="Arial, sans-serif" font-size="7" fill="#888">running</text>
   </g>
 
-  <!-- Arrow from runtime to apps -->
-  <line x1="590" y1="350" x2="620" y2="445" stroke="#4CAF50" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+  <!-- Arrows from hot_reload to apps -->
+  <line x1="560" y1="455" x2="630" y2="525" stroke="#9C27B0" stroke-width="1.5" marker-end="url(#arrowhead-purple)"/>
+
+  <!-- Arrow from workspace to apps -->
+  <line x1="400" y1="455" x2="630" y2="545" stroke="#9C27B0" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrowhead-purple)"/>
 
   <!-- Legend -->
-  <g transform="translate(30, 500)">
+  <g transform="translate(30, 550)">
     <text x="0" y="0" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333">Legend:</text>
     <rect x="0" y="10" width="12" height="12" fill="#FFF3E0" stroke="#FF9800"/>
-    <text x="18" y="20" font-family="Arial, sans-serif" font-size="9" fill="#666">Internal module</text>
-    <rect x="0" y="30" width="12" height="12" fill="#E8F5E9" stroke="#4CAF50"/>
-    <text x="18" y="40" font-family="Arial, sans-serif" font-size="9" fill="#666">User-provided</text>
-    <rect x="0" y="50" width="12" height="12" fill="#E8F4FD" stroke="#4A90D9"/>
-    <text x="18" y="60" font-family="Arial, sans-serif" font-size="9" fill="#666">Reconciler</text>
+    <text x="18" y="20" font-family="Arial, sans-serif" font-size="9" fill="#666">Core module</text>
+    <rect x="0" y="30" width="12" height="12" fill="#F3E5F5" stroke="#9C27B0"/>
+    <text x="18" y="40" font-family="Arial, sans-serif" font-size="9" fill="#666">Runtime infra (v0.2.0)</text>
+    <rect x="0" y="50" width="12" height="12" fill="#E8F5E9" stroke="#4CAF50"/>
+    <text x="18" y="60" font-family="Arial, sans-serif" font-size="9" fill="#666">Runtime module</text>
+    <rect x="0" y="70" width="12" height="12" fill="#E8F4FD" stroke="#4A90D9"/>
+    <text x="18" y="80" font-family="Arial, sans-serif" font-size="9" fill="#666">Reconciler</text>
   </g>
 
   <!-- Reconcile interval indicator -->
-  <g transform="translate(670, 100)">
+  <g transform="translate(780, 100)">
     <path d="M 0 0 A 20 20 0 1 1 0 40 A 20 20 0 1 1 0 0" fill="none" stroke="#4A90D9" stroke-width="2"/>
     <path d="M 0 5 L 0 20 L 10 15" fill="none" stroke="#4A90D9" stroke-width="2"/>
     <text x="30" y="25" font-family="Arial, sans-serif" font-size="9" fill="#4A90D9">every 60s</text>

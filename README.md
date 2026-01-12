@@ -323,6 +323,12 @@ For private repositories, we recommend SSH deploy keys with read-only access.
 
 ![bc_gitops Architecture](assets/architecture.svg)
 
+### Hot Code Reload Flow
+
+During upgrades, bc_gitops can perform hot code reloading:
+
+![Hot Reload Flow](assets/hot_reload_flow.svg)
+
 The reconciler follows a continuous loop:
 
 1. **Pull** - Fetch latest changes from git repository
