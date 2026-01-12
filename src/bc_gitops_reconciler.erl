@@ -505,7 +505,10 @@ apply_action({deploy, AppSpec}, RuntimeMod) ->
 
 apply_action({remove, AppState}, RuntimeMod) ->
     AppName = AppState#app_state.name,
-    case RuntimeMod:remove(AppName) of
+    emit_telemetry(?TELEMETRY_REMOVE_START, #{}, #{app => AppName}),
+    Result = RuntimeMod:remove(AppName),
+    emit_telemetry(?TELEMETRY_REMOVE_STOP, #{}, #{app => AppName, result => Result}),
+    case Result of
         ok -> {removed, AppName};
         Error -> Error
     end;

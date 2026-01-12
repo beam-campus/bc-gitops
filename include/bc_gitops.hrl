@@ -87,13 +87,38 @@
 %% Telemetry Event Names
 %% -----------------------------------------------------------------------------
 
+%% Reconciliation events
 -define(TELEMETRY_RECONCILE_START, [bc_gitops, reconcile, start]).
 -define(TELEMETRY_RECONCILE_STOP, [bc_gitops, reconcile, stop]).
 -define(TELEMETRY_RECONCILE_ERROR, [bc_gitops, reconcile, error]).
+
+%% Deploy/upgrade/remove events
 -define(TELEMETRY_DEPLOY_START, [bc_gitops, deploy, start]).
 -define(TELEMETRY_DEPLOY_STOP, [bc_gitops, deploy, stop]).
 -define(TELEMETRY_UPGRADE_START, [bc_gitops, upgrade, start]).
 -define(TELEMETRY_UPGRADE_STOP, [bc_gitops, upgrade, stop]).
+-define(TELEMETRY_REMOVE_START, [bc_gitops, remove, start]).
+-define(TELEMETRY_REMOVE_STOP, [bc_gitops, remove, stop]).
+
+%% Git operations
 -define(TELEMETRY_GIT_PULL, [bc_gitops, git, pull]).
+-define(TELEMETRY_GIT_CLONE_START, [bc_gitops, git, clone_start]).
+-define(TELEMETRY_GIT_CLONE_STOP, [bc_gitops, git, clone_stop]).
+
+%% Build operations
+-define(TELEMETRY_BUILD_START, [bc_gitops, build, start]).
+-define(TELEMETRY_BUILD_STOP, [bc_gitops, build, stop]).
+-define(TELEMETRY_DEPS_START, [bc_gitops, deps, start]).
+-define(TELEMETRY_DEPS_STOP, [bc_gitops, deps, stop]).
+
+%% Code loading
+-define(TELEMETRY_CODE_LOAD, [bc_gitops, code, load]).
+
+%% Config parsing
+-define(TELEMETRY_PARSE_START, [bc_gitops, parse, start]).
+-define(TELEMETRY_PARSE_STOP, [bc_gitops, parse, stop]).
+
+%% Health checks
+-define(TELEMETRY_HEALTH_CHECK, [bc_gitops, health, check]).
 
 -endif.

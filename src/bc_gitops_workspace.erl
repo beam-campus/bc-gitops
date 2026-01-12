@@ -224,6 +224,14 @@ do_fetch_hex_elixir(Name, Version, PackageDir) ->
 fetch_git_package(Name, Url, Ref) ->
     PackageDir = get_package_dir(Name),
 
+    %% Emit clone start telemetry
+    emit_telemetry(?TELEMETRY_GIT_CLONE_START, #{}, #{
+        app => Name,
+        url => Url,
+        ref => Ref
+    }),
+    CloneStart = erlang:monotonic_time(),
+
     %% Clone the repository
     CloneCmd = case Ref of
         undefined ->
@@ -234,8 +242,23 @@ fetch_git_package(Name, Url, Ref) ->
 
     case run_cmd("/tmp", CloneCmd) of
         {ok, _} ->
+            CloneDuration = erlang:monotonic_time() - CloneStart,
+            emit_telemetry(?TELEMETRY_GIT_CLONE_STOP, #{duration => CloneDuration}, #{
+                app => Name,
+                url => Url,
+                ref => Ref,
+                status => success
+            }),
             compile_git_package(Name, PackageDir);
         {error, Reason} ->
+            CloneDuration = erlang:monotonic_time() - CloneStart,
+            emit_telemetry(?TELEMETRY_GIT_CLONE_STOP, #{duration => CloneDuration}, #{
+                app => Name,
+                url => Url,
+                ref => Ref,
+                status => failed,
+                error => Reason
+            }),
             {error, {git_clone_failed, Reason}}
     end.
 
@@ -269,25 +292,71 @@ detect_project_type(Dir) ->
 
 -spec compile_rebar3_project(atom(), file:filename()) -> {ok, file:filename()} | {error, term()}.
 compile_rebar3_project(Name, PackageDir) ->
-    case run_cmd(PackageDir, "rebar3 get-deps && rebar3 compile") of
+    %% Deps fetch
+    emit_telemetry(?TELEMETRY_DEPS_START, #{}, #{app => Name, tool => rebar3}),
+    DepsStart = erlang:monotonic_time(),
+    case run_cmd(PackageDir, "rebar3 get-deps") of
         {ok, _} ->
-            EbinPaths = get_ebin_paths(Name),
-            lists:foreach(fun code:add_pathz/1, EbinPaths),
-            {ok, PackageDir};
+            DepsDuration = erlang:monotonic_time() - DepsStart,
+            emit_telemetry(?TELEMETRY_DEPS_STOP, #{duration => DepsDuration}, #{app => Name, tool => rebar3, status => success}),
+
+            %% Build
+            emit_telemetry(?TELEMETRY_BUILD_START, #{}, #{app => Name, tool => rebar3}),
+            BuildStart = erlang:monotonic_time(),
+            case run_cmd(PackageDir, "rebar3 compile") of
+                {ok, _} ->
+                    BuildDuration = erlang:monotonic_time() - BuildStart,
+                    emit_telemetry(?TELEMETRY_BUILD_STOP, #{duration => BuildDuration}, #{app => Name, tool => rebar3, status => success}),
+
+                    %% Load code paths
+                    EbinPaths = get_ebin_paths(Name),
+                    lists:foreach(fun code:add_pathz/1, EbinPaths),
+                    emit_telemetry(?TELEMETRY_CODE_LOAD, #{}, #{app => Name, paths_count => length(EbinPaths)}),
+                    {ok, PackageDir};
+                {error, Reason} ->
+                    BuildDuration = erlang:monotonic_time() - BuildStart,
+                    emit_telemetry(?TELEMETRY_BUILD_STOP, #{duration => BuildDuration}, #{app => Name, tool => rebar3, status => failed, error => Reason}),
+                    {error, {rebar3_compile_failed, Reason}}
+            end;
         {error, Reason} ->
-            {error, {rebar3_compile_failed, Reason}}
+            DepsDuration = erlang:monotonic_time() - DepsStart,
+            emit_telemetry(?TELEMETRY_DEPS_STOP, #{duration => DepsDuration}, #{app => Name, tool => rebar3, status => failed, error => Reason}),
+            {error, {rebar3_deps_failed, Reason}}
     end.
 
 -spec compile_mix_project(atom(), file:filename()) -> {ok, file:filename()} | {error, term()}.
-compile_mix_project(_Name, PackageDir) ->
-    case run_cmd(PackageDir, "mix deps.get && mix compile") of
+compile_mix_project(Name, PackageDir) ->
+    %% Deps fetch
+    emit_telemetry(?TELEMETRY_DEPS_START, #{}, #{app => Name, tool => mix}),
+    DepsStart = erlang:monotonic_time(),
+    case run_cmd(PackageDir, "mix deps.get") of
         {ok, _} ->
-            BuildDir = filename:join(PackageDir, "_build/dev/lib"),
-            EbinPaths = filelib:wildcard(filename:join(BuildDir, "*/ebin")),
-            lists:foreach(fun code:add_pathz/1, EbinPaths),
-            {ok, PackageDir};
+            DepsDuration = erlang:monotonic_time() - DepsStart,
+            emit_telemetry(?TELEMETRY_DEPS_STOP, #{duration => DepsDuration}, #{app => Name, tool => mix, status => success}),
+
+            %% Build
+            emit_telemetry(?TELEMETRY_BUILD_START, #{}, #{app => Name, tool => mix}),
+            BuildStart = erlang:monotonic_time(),
+            case run_cmd(PackageDir, "mix compile") of
+                {ok, _} ->
+                    BuildDuration = erlang:monotonic_time() - BuildStart,
+                    emit_telemetry(?TELEMETRY_BUILD_STOP, #{duration => BuildDuration}, #{app => Name, tool => mix, status => success}),
+
+                    %% Load code paths
+                    BuildDir = filename:join(PackageDir, "_build/dev/lib"),
+                    EbinPaths = filelib:wildcard(filename:join(BuildDir, "*/ebin")),
+                    lists:foreach(fun code:add_pathz/1, EbinPaths),
+                    emit_telemetry(?TELEMETRY_CODE_LOAD, #{}, #{app => Name, paths_count => length(EbinPaths)}),
+                    {ok, PackageDir};
+                {error, Reason} ->
+                    BuildDuration = erlang:monotonic_time() - BuildStart,
+                    emit_telemetry(?TELEMETRY_BUILD_STOP, #{duration => BuildDuration}, #{app => Name, tool => mix, status => failed, error => Reason}),
+                    {error, {mix_compile_failed, Reason}}
+            end;
         {error, Reason} ->
-            {error, {mix_compile_failed, Reason}}
+            DepsDuration = erlang:monotonic_time() - DepsStart,
+            emit_telemetry(?TELEMETRY_DEPS_STOP, #{duration => DepsDuration}, #{app => Name, tool => mix, status => failed, error => Reason}),
+            {error, {mix_deps_failed, Reason}}
     end.
 
 -spec compile_erlang_mk_project(atom(), file:filename()) -> {ok, file:filename()} | {error, term()}.
@@ -364,3 +433,11 @@ delete_dir_recursive(Dir) ->
         false ->
             ok
     end.
+
+%% -----------------------------------------------------------------------------
+%% Telemetry
+%% -----------------------------------------------------------------------------
+
+-spec emit_telemetry([atom()], map(), map()) -> ok.
+emit_telemetry(EventName, Measurements, Metadata) ->
+    telemetry:execute(EventName, Measurements, Metadata).
