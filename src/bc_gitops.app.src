@@ -1,0 +1,36 @@
+{application, bc_gitops, [
+    {description, "BEAM-native GitOps reconciler for OTP applications"},
+    {vsn, "0.1.0"},
+    {registered, [bc_gitops_sup, bc_gitops_reconciler]},
+    {mod, {bc_gitops_app, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        crypto,
+        telemetry
+    ]},
+    {env, [
+        %% Git repository URL (required)
+        %% {repo_url, "https://github.com/org/gitops-repo.git"},
+
+        %% Local path for git clone (default: /var/lib/bc_gitops)
+        %% {local_path, "/var/lib/bc_gitops"},
+
+        %% Reconcile interval in milliseconds (default: 60000)
+        %% {reconcile_interval, 60000},
+
+        %% Git branch to track (default: "main")
+        %% {branch, "main"},
+
+        %% Apps directory within repo (default: "apps")
+        %% {apps_dir, "apps"},
+
+        %% Runtime callback module (must implement bc_gitops_runtime behaviour)
+        %% {runtime_module, my_app_runtime}
+    ]},
+    {modules, []},
+    {licenses, ["MIT"]},
+    {links, [
+        {"GitHub", "https://github.com/beam-campus/bc-gitops"}
+    ]}
+]}.

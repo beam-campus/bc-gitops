@@ -1,0 +1,99 @@
+%%% @doc Type definitions and records for bc_gitops.
+%%% @end
+
+-ifndef(BC_GITOPS_HRL).
+-define(BC_GITOPS_HRL, true).
+
+%% -----------------------------------------------------------------------------
+%% Source Specification - where to get the application from
+%% -----------------------------------------------------------------------------
+
+-record(source_spec, {
+    type :: release | git | hex,
+    url :: binary() | undefined,
+    sha256 :: binary() | undefined,
+    ref :: binary() | undefined  %% For git: branch/tag/commit
+}).
+
+%% -----------------------------------------------------------------------------
+%% Health Specification - how to check application health
+%% -----------------------------------------------------------------------------
+
+-record(health_spec, {
+    type :: http | tcp | custom,
+    port :: pos_integer(),
+    path :: binary() | undefined,  %% For HTTP
+    interval :: pos_integer(),     %% Milliseconds
+    timeout :: pos_integer(),      %% Milliseconds
+    module :: module() | undefined %% For custom health checks
+}).
+
+%% -----------------------------------------------------------------------------
+%% App Specification - defines desired state for an application
+%% -----------------------------------------------------------------------------
+
+-record(app_spec, {
+    name :: atom(),
+    version :: binary(),
+    source :: #source_spec{},
+    env :: #{atom() => term()},
+    health :: #health_spec{} | undefined,
+    depends_on :: [atom()]
+}).
+
+%% -----------------------------------------------------------------------------
+%% App State - current runtime state of an application
+%% -----------------------------------------------------------------------------
+
+-record(app_state, {
+    name :: atom(),
+    version :: binary(),
+    status :: pending | starting | running | stopped | failed | upgrading,
+    path :: file:filename() | undefined,
+    pid :: pid() | undefined,
+    started_at :: calendar:datetime() | undefined,
+    health :: healthy | unhealthy | unknown,
+    env :: #{atom() => term()}
+}).
+
+%% -----------------------------------------------------------------------------
+%% Reconciler State
+%% -----------------------------------------------------------------------------
+
+-record(reconciler_state, {
+    repo_url :: binary(),
+    local_path :: file:filename(),
+    branch :: binary(),
+    apps_dir :: binary(),
+    runtime_module :: module(),
+    reconcile_interval :: pos_integer(),
+    last_commit :: binary() | undefined,
+    desired_state :: #{atom() => #app_spec{}},
+    current_state :: #{atom() => #app_state{}},
+    status :: initializing | ready | synced | degraded | error
+}).
+
+%% -----------------------------------------------------------------------------
+%% Actions - operations to perform during reconciliation
+%% -----------------------------------------------------------------------------
+
+-type action() ::
+    {deploy, #app_spec{}} |
+    {remove, #app_state{}} |
+    {upgrade, #app_spec{}, OldVersion :: binary()} |
+    {reconfigure, #app_spec{}}.
+
+%% -----------------------------------------------------------------------------
+%% Telemetry Event Names
+%% -----------------------------------------------------------------------------
+
+-define(TELEMETRY_RECONCILE_START, [bc_gitops, reconcile, start]).
+-define(TELEMETRY_RECONCILE_STOP, [bc_gitops, reconcile, stop]).
+-define(TELEMETRY_RECONCILE_ERROR, [bc_gitops, reconcile, error]).
+-define(TELEMETRY_DEPLOY_START, [bc_gitops, deploy, start]).
+-define(TELEMETRY_DEPLOY_STOP, [bc_gitops, deploy, stop]).
+-define(TELEMETRY_UPGRADE_START, [bc_gitops, upgrade, start]).
+-define(TELEMETRY_UPGRADE_STOP, [bc_gitops, upgrade, stop]).
+-define(TELEMETRY_GIT_PULL, [bc_gitops, git, pull]).
+
+-endif.
