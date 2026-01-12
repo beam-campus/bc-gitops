@@ -1,27 +1,33 @@
 %%% @doc Default runtime implementation for bc_gitops.
 %%%
-%%% This is a reference implementation that uses standard OTP
-%%% application management. It demonstrates the basic patterns
-%%% but may need customization for production use.
+%%% This is a fully functional runtime that can deploy, upgrade, and manage
+%%% OTP applications at runtime. It supports both Erlang and Elixir packages
+%%% from hex.pm and git sources.
 %%%
 %%% == Features ==
 %%%
-%%% <ul>
-%%% <li>Deploys applications from hex.pm using rebar3</li>
-%%% <li>Supports basic start/stop operations</li>
-%%% <li>Tracks application state in memory</li>
-%%% </ul>
+%%% - Fetches packages from hex.pm (rebar3 for Erlang, mix for Elixir)
+%%% - Clones and compiles git repositories
+%%% - Hot code reloading for upgrades
+%%% - Proper code path management
+%%% - Health monitoring via application status
 %%%
-%%% == Limitations ==
+%%% == Usage ==
 %%%
-%%% This default implementation:
-%%% <ul>
-%%% <li>Does not support hot code upgrades (uses restart)</li>
-%%% <li>Does not download from git or custom URLs</li>
-%%% <li>Requires rebar3 to be installed</li>
-%%% </ul>
+%%% This module is used automatically by bc_gitops_reconciler when no
+%%% custom runtime is specified:
+%%% ```
+%%% bc_gitops:start_link(#{
+%%%     repo_url => <<"https://github.com/myorg/gitops-config">>,
+%%%     local_path => <<"/var/lib/bc_gitops/config">>
+%%% }).
+%%% '''
 %%%
-%%% For production, implement a custom runtime module.
+%%% == Custom Runtime ==
+%%%
+%%% For production deployments with specific requirements, implement
+%%% the bc_gitops_runtime behaviour with your own logic.
+%%%
 %%% @end
 -module(bc_gitops_runtime_default).
 
@@ -47,84 +53,123 @@
 
 %% @doc Deploy an application.
 %%
-%% For hex packages, this attempts to load and start the application
-%% if it's already in the code path. For production, you'd want to
-%% implement proper package downloading.
+%% This function:
+%% 1. Initializes the workspace (if needed)
+%% 2. Fetches the package from hex.pm or git
+%% 3. Adds compiled code to the VM's code path
+%% 4. Sets application environment
+%% 5. Starts the application
 -spec deploy(#app_spec{}) -> {ok, #app_state{}} | {error, term()}.
-deploy(#app_spec{name = Name, version = Version, source = _Source, env = Env}) ->
-    %% Set environment before starting
-    set_app_env(Name, Env),
+deploy(#app_spec{name = Name, version = Version, source = Source, env = Env}) ->
+    %% Ensure workspace is initialized
+    ok = bc_gitops_workspace:init(),
 
-    %% Try to start the application
-    case application:ensure_all_started(Name) of
-        {ok, _Started} ->
-            AppState = #app_state{
-                name = Name,
-                version = Version,
-                status = running,
-                path = code:lib_dir(Name),
-                pid = undefined,  %% OTP apps don't have a single pid
-                started_at = calendar:universal_time(),
-                health = unknown,
-                env = Env
-            },
-            store_app_state(Name, AppState),
-            {ok, AppState};
-        {error, {Name, {already_started, Name}}} ->
-            %% Already running - get current state
-            AppState = #app_state{
-                name = Name,
-                version = Version,
-                status = running,
-                path = code:lib_dir(Name),
-                pid = undefined,
-                started_at = calendar:universal_time(),
-                health = unknown,
-                env = Env
-            },
-            store_app_state(Name, AppState),
-            {ok, AppState};
-        {error, Reason} ->
-            {error, {start_failed, Reason}}
+    %% Check if already in code path (pre-installed dependency)
+    case code:lib_dir(Name) of
+        {error, bad_name} ->
+            %% Not in code path - need to fetch
+            deploy_from_source(Name, Version, Source, Env);
+        _LibDir ->
+            %% Already available - just start it
+            deploy_existing(Name, Version, Env)
     end.
 
-%% @doc Remove (stop) an application.
+%% @doc Remove (stop and unload) an application.
 -spec remove(atom()) -> ok | {error, term()}.
 remove(AppName) ->
+    %% Stop the application
     case application:stop(AppName) of
-        ok ->
-            remove_app_state(AppName),
-            ok;
-        {error, {not_started, AppName}} ->
-            %% Already stopped
-            remove_app_state(AppName),
-            ok;
+        ok -> ok;
+        {error, {not_started, AppName}} -> ok;
         {error, Reason} ->
-            {error, {stop_failed, Reason}}
-    end.
+            %% Log but continue with cleanup
+            error_logger:warning_msg("Failed to stop ~p: ~p~n", [AppName, Reason])
+    end,
 
-%% @doc Upgrade an application.
+    %% Unload the application
+    case application:unload(AppName) of
+        ok -> ok;
+        {error, {not_loaded, AppName}} -> ok;
+        {error, _} -> ok
+    end,
+
+    %% Remove from workspace (this also removes code paths)
+    bc_gitops_workspace:remove_package(AppName),
+
+    %% Remove from our state tracking
+    remove_app_state(AppName),
+    ok.
+
+%% @doc Upgrade an application with hot code reloading.
 %%
-%% The default implementation does a simple restart. For proper
-%% hot code upgrades, implement a custom runtime using release_handler.
+%% This function:
+%% 1. Fetches the new version (if not already in code path)
+%% 2. Performs hot code reload (suspends processes, loads new modules, resumes)
+%% 3. Updates state tracking
 -spec upgrade(#app_spec{}, binary()) -> {ok, #app_state{}} | {error, term()}.
-upgrade(AppSpec, _OldVersion) ->
-    #app_spec{name = Name} = AppSpec,
-    %% Simple restart strategy
-    case remove(Name) of
-        ok ->
-            deploy(AppSpec);
+upgrade(AppSpec, OldVersion) ->
+    #app_spec{name = Name, version = NewVersion, source = Source, env = Env} = AppSpec,
+
+    %% Check if already in code path (pre-installed dependency)
+    FetchResult = case code:lib_dir(Name) of
+        {error, bad_name} ->
+            %% Not in code path - need to fetch
+            bc_gitops_workspace:fetch_package(Name, Source);
+        _LibDir ->
+            %% Already available
+            {ok, already_loaded}
+    end,
+
+    case FetchResult of
+        {ok, _} ->
+            %% Perform hot code upgrade
+            case bc_gitops_hot_reload:upgrade_app(Name, OldVersion, NewVersion) of
+                ok ->
+                    %% Update environment
+                    set_app_env(Name, Env),
+
+                    %% Update state
+                    AppState = #app_state{
+                        name = Name,
+                        version = NewVersion,
+                        status = running,
+                        path = code:lib_dir(Name),
+                        pid = undefined,
+                        started_at = calendar:universal_time(),
+                        health = unknown,
+                        env = Env
+                    },
+                    store_app_state(Name, AppState),
+                    {ok, AppState};
+                {error, Reason} ->
+                    %% Hot reload failed - try restart strategy
+                    error_logger:warning_msg(
+                        "Hot reload failed for ~p, falling back to restart: ~p~n",
+                        [Name, Reason]
+                    ),
+                    restart_upgrade(AppSpec, OldVersion)
+            end;
         {error, Reason} ->
-            {error, {upgrade_failed, Reason}}
+            {error, {fetch_failed, Reason}}
     end.
 
 %% @doc Reconfigure an application.
 %%
 %% Updates the application environment. Some applications may need
-%% a restart to pick up the new configuration.
+%% to be notified of config changes (e.g., via a config_change callback).
 -spec reconfigure(#app_spec{}) -> {ok, #app_state{}} | {error, term()}.
 reconfigure(#app_spec{name = Name, version = Version, env = NewEnv}) ->
+    %% Get old env for comparison
+    OldEnv = case get_app_state(Name) of
+        {ok, #app_state{env = E}} -> E;
+        error -> #{}
+    end,
+
+    %% Set new environment
     set_app_env(Name, NewEnv),
+
+    %% Notify application of config change (if it supports it)
+    notify_config_change(Name, OldEnv, NewEnv),
 
     %% Update stored state
     case get_app_state(Name) of
@@ -160,6 +205,64 @@ get_current_state() ->
         State
     ),
     {ok, UpdatedState}.
+
+%% -----------------------------------------------------------------------------
+%% Internal functions - Deployment
+%% -----------------------------------------------------------------------------
+
+-spec deploy_from_source(atom(), binary(), #source_spec{}, map()) ->
+    {ok, #app_state{}} | {error, term()}.
+deploy_from_source(Name, Version, Source, Env) ->
+    case bc_gitops_workspace:fetch_package(Name, Source) of
+        {ok, _PackagePath} ->
+            deploy_existing(Name, Version, Env);
+        {error, Reason} ->
+            {error, {fetch_failed, Reason}}
+    end.
+
+-spec deploy_existing(atom(), binary(), map()) -> {ok, #app_state{}} | {error, term()}.
+deploy_existing(Name, Version, Env) ->
+    %% Set environment before starting
+    set_app_env(Name, Env),
+
+    %% Try to start the application
+    case application:ensure_all_started(Name) of
+        {ok, _Started} ->
+            AppState = #app_state{
+                name = Name,
+                version = Version,
+                status = running,
+                path = code:lib_dir(Name),
+                pid = undefined,
+                started_at = calendar:universal_time(),
+                health = unknown,
+                env = Env
+            },
+            store_app_state(Name, AppState),
+            {ok, AppState};
+        {error, {Name, {already_started, Name}}} ->
+            %% Already running
+            AppState = #app_state{
+                name = Name,
+                version = Version,
+                status = running,
+                path = code:lib_dir(Name),
+                pid = undefined,
+                started_at = calendar:universal_time(),
+                health = unknown,
+                env = Env
+            },
+            store_app_state(Name, AppState),
+            {ok, AppState};
+        {error, Reason} ->
+            {error, {start_failed, Reason}}
+    end.
+
+-spec restart_upgrade(#app_spec{}, binary()) -> {ok, #app_state{}} | {error, term()}.
+restart_upgrade(#app_spec{name = Name} = AppSpec, _OldVersion) ->
+    %% Fallback: stop and redeploy
+    ok = remove(Name),
+    deploy(AppSpec).
 
 %% -----------------------------------------------------------------------------
 %% Internal functions - State management
@@ -206,13 +309,43 @@ set_app_env(AppName, Env) ->
         Env
     ).
 
+-spec notify_config_change(atom(), map(), map()) -> ok.
+notify_config_change(App, OldEnv, NewEnv) ->
+    %% Find changed keys
+    AllKeys = lists:usort(maps:keys(OldEnv) ++ maps:keys(NewEnv)),
+    Changed = [
+        {K, maps:get(K, OldEnv, undefined), maps:get(K, NewEnv, undefined)}
+     || K <- AllKeys,
+        maps:get(K, OldEnv, undefined) =/= maps:get(K, NewEnv, undefined)
+    ],
+
+    case Changed of
+        [] ->
+            ok;
+        _ ->
+            %% Try to call the application's config_change callback
+            %% This is an optional callback in OTP applications
+            Mod = App,  %% Assumes main module has same name as app
+            case erlang:function_exported(Mod, config_change, 3) of
+                true ->
+                    Removed = [K || {K, _, undefined} <- Changed],
+                    New = [{K, V} || {K, undefined, V} <- Changed, V =/= undefined],
+                    ChangedKV = [{K, V} || {K, Old, V} <- Changed,
+                                           Old =/= undefined, V =/= undefined],
+                    catch Mod:config_change(ChangedKV, New, Removed),
+                    ok;
+                false ->
+                    ok
+            end
+    end.
+
 %% -----------------------------------------------------------------------------
 %% Internal functions - Health
 %% -----------------------------------------------------------------------------
 
 -spec check_health(#app_state{}) -> #app_state{}.
 check_health(AppState = #app_state{name = Name}) ->
-    %% Simple health check: is the application running?
+    %% Check if the application is running
     case lists:keyfind(Name, 1, application:which_applications()) of
         {Name, _, _} ->
             AppState#app_state{status = running, health = healthy};

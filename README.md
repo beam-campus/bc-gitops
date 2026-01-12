@@ -15,8 +15,10 @@ Traditional GitOps tools like Flux and ArgoCD are built for Kubernetes. But what
 
 bc_gitops provides:
 
+- **Works out of the box** - Default runtime fetches packages from hex.pm and git, compiles, and starts them
 - **Native BEAM integration** - Works directly with OTP applications, releases, and supervision trees
-- **Hot code upgrades** - Leverage OTP's release_handler for zero-downtime deployments
+- **Hot code upgrades** - Automatic module reloading with process suspension/resumption
+- **Erlang & Elixir support** - Fetches and compiles both Erlang (rebar3) and Elixir (mix) packages
 - **Flexible runtimes** - Pluggable backend for custom deployment strategies
 - **Observable** - Built-in telemetry events for monitoring and alerting
 - **Minimal dependencies** - Only requires `telemetry`, no external services needed
@@ -27,7 +29,7 @@ Add `bc_gitops` to your list of dependencies in `rebar.config`:
 
 ```erlang
 {deps, [
-    {bc_gitops, "0.1.0"}
+    {bc_gitops, "0.2.0"}
 ]}.
 ```
 
@@ -36,7 +38,7 @@ Or for Elixir projects in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:bc_gitops, "~> 0.1.0"}
+    {:bc_gitops, "~> 0.2.0"}
   ]
 end
 ```
@@ -93,34 +95,13 @@ Add configuration to your `sys.config`:
 ]}
 ```
 
-### 3. Implement a Runtime Module
+### 3. Start the Application
 
-Create a module that implements the `bc_gitops_runtime` behaviour:
-
-```erlang
--module(my_app_runtime).
--behaviour(bc_gitops_runtime).
-
--export([deploy/1, remove/1, upgrade/2, reconfigure/1]).
-
-deploy(AppSpec) ->
-    %% Your deployment logic here
-    {ok, AppState}.
-
-remove(AppName) ->
-    %% Your removal logic here
-    ok.
-
-upgrade(AppSpec, OldVersion) ->
-    %% Your upgrade logic here
-    {ok, AppState}.
-
-reconfigure(AppSpec) ->
-    %% Your reconfiguration logic here
-    {ok, AppState}.
-```
-
-### 4. Start the Application
+The default runtime (`bc_gitops_runtime_default`) handles everything:
+- Fetches packages from hex.pm using rebar3 (Erlang) or mix (Elixir)
+- Clones and compiles git repositories
+- Performs hot code reloading during upgrades
+- Manages code paths automatically
 
 ```erlang
 application:start(bc_gitops).
@@ -270,14 +251,61 @@ telemetry:attach(
 ).
 ```
 
+## Default Runtime Features
+
+The default runtime (`bc_gitops_runtime_default`) is fully functional out of the box:
+
+### Package Fetching
+- **Hex packages**: Automatically fetched via rebar3 or mix
+- **Git repositories**: Cloned, compiled, and loaded
+- **Code path management**: Adds compiled ebin directories to the VM
+
+### Hot Code Reloading
+During upgrades, bc_gitops:
+1. Suspends processes using `sys:suspend/1`
+2. Reloads changed modules with `code:soft_purge/1` + `code:load_file/1`
+3. Resumes processes (triggering `code_change/3` callbacks)
+4. Falls back to restart if hot reload fails
+
+### Supported Project Types
+- **rebar3** - Erlang projects with `rebar.config`
+- **mix** - Elixir projects with `mix.exs`
+- **erlang.mk** - Projects using Makefile
+
 ## Implementing Custom Runtimes
 
-The default runtime (`bc_gitops_runtime_default`) provides basic start/stop functionality. For production use, you'll likely want a custom runtime that:
+For production deployments with specific requirements, implement the `bc_gitops_runtime` behaviour:
 
-- Downloads packages from your artifact repository
-- Implements hot code upgrades using `release_handler`
-- Integrates with your service discovery
-- Handles secrets management
+```erlang
+-module(my_app_runtime).
+-behaviour(bc_gitops_runtime).
+
+-export([deploy/1, remove/1, upgrade/2, reconfigure/1, get_current_state/0]).
+
+deploy(AppSpec) ->
+    %% Download from private artifact repository
+    %% Integrate with service discovery
+    %% Handle secrets injection
+    {ok, AppState}.
+
+remove(AppName) ->
+    %% Deregister from service discovery
+    %% Clean up resources
+    ok.
+
+upgrade(AppSpec, OldVersion) ->
+    %% Use release_handler for OTP releases
+    %% Or custom upgrade logic
+    {ok, AppState}.
+
+reconfigure(AppSpec) ->
+    %% Hot config reload
+    {ok, AppState}.
+
+get_current_state() ->
+    %% Return current state of all managed apps
+    {ok, #{}}.
+```
 
 See the [Runtime Guide](https://hexdocs.pm/bc_gitops/runtime.html) for detailed examples.
 

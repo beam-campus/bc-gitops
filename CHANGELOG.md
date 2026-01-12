@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-12
+
+### Added
+
+- **bc_gitops_workspace**: Package fetching and compilation workspace
+  - Fetches packages from hex.pm via rebar3 (Erlang) or mix (Elixir)
+  - Clones and compiles git repositories
+  - Manages code paths automatically
+  - Supports rebar3, mix, and erlang.mk project types
+
+- **bc_gitops_hot_reload**: Hot code reloading utilities
+  - Module reloading with `code:soft_purge/1` + `code:load_file/1`
+  - Process suspension/resumption for stateful upgrades
+  - Change detection via beam file MD5 comparison
+  - Coordinated upgrade across application modules
+
+### Changed
+
+- **bc_gitops_runtime_default**: Now fully functional out of the box
+  - Actually fetches and compiles packages (was just a stub before)
+  - Supports hot code upgrades with fallback to restart
+  - Properly manages application environment and state
+
 ## [0.1.0] - 2026-01-12
 
 ### Added
@@ -21,5 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/beam-campus/bc-gitops/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/beam-campus/bc-gitops/releases/tag/v0.1.0

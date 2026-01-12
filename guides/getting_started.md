@@ -26,7 +26,7 @@ Add to your `rebar.config`:
 
 ```erlang
 {deps, [
-    {bc_gitops, "0.1.0"}
+    {bc_gitops, "0.2.0"}
 ]}.
 ```
 
@@ -37,7 +37,7 @@ Add to your `mix.exs`:
 ```elixir
 def deps do
   [
-    {:bc_gitops, "~> 0.1.0"}
+    {:bc_gitops, "~> 0.2.0"}
   ]
 end
 ```
@@ -109,11 +109,16 @@ git remote add origin https://github.com/myorg/my-gitops-repo.git
 git push -u origin main
 ```
 
-## Step 3: Implement a Runtime Module
+## Step 3: Choose a Runtime Module
 
-bc_gitops needs to know *how* to deploy applications. You provide this by implementing the `bc_gitops_runtime` behaviour.
+bc_gitops needs to know *how* to deploy applications. As of v0.2.0, the built-in `bc_gitops_runtime_default` is fully functional:
 
-For simple cases, you can use the built-in `bc_gitops_runtime_default`, but for production you'll want a custom implementation.
+- **Fetches packages** from hex.pm (Erlang via rebar3, Elixir via mix)
+- **Clones git repositories** and compiles them
+- **Hot code reloading** during upgrades (with fallback to restart)
+- **Code path management** - automatically adds compiled modules to the VM
+
+For most use cases, the default runtime works out of the box. For custom requirements, implement the `bc_gitops_runtime` behaviour.
 
 Create `src/my_app_runtime.erl`:
 

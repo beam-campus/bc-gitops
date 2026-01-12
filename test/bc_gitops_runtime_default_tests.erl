@@ -55,7 +55,8 @@ deploy_nonexistent_app_test() ->
     },
 
     Result = bc_gitops_runtime_default:deploy(Spec),
-    ?assertMatch({error, {start_failed, _}}, Result).
+    %% New runtime tries to fetch first, so we get fetch_failed
+    ?assertMatch({error, {fetch_failed, _}}, Result).
 
 deploy_existing_app_test() ->
     clear_state(),
