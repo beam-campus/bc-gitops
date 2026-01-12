@@ -3,6 +3,7 @@
 [![Hex.pm](https://img.shields.io/hexpm/v/bc_gitops.svg)](https://hex.pm/packages/bc_gitops)
 [![Hex Docs](https://img.shields.io/badge/hex-docs-blue.svg)](https://hexdocs.pm/bc_gitops)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support-yellow.svg)](https://buymeacoffee.com/beamologist)
 
 **BEAM-native GitOps reconciler for OTP applications.**
 
