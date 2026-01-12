@@ -100,53 +100,29 @@ remove(AppName) ->
     remove_app_state(AppName),
     ok.
 
-%% @doc Upgrade an application with hot code reloading.
+%% @doc Upgrade an application by restarting it.
+%%
+%% Version upgrades always restart the application because:
+%% - Application metadata (routes, supervisors, config) may have changed
+%% - application:get_key/2 caches values that hot reload doesn't update
+%% - Clean restart ensures all initialization code runs
+%%
+%% Hot code reload is still available for same-version code changes
+%% (e.g., tracking a branch) via bc_gitops_hot_reload module.
 %%
 %% This function:
-%% 1. Fetches the new version (always - upgrades require fresh code)
-%% 2. Performs hot code reload (suspends processes, loads new modules, resumes)
-%% 3. Updates state tracking
+%% 1. Stops the running application
+%% 2. Removes old code paths
+%% 3. Fetches the new version
+%% 4. Deploys fresh (starts application with new code)
 -spec upgrade(#app_spec{}, binary()) -> {ok, #app_state{}} | {error, term()}.
-upgrade(AppSpec, OldVersion) ->
-    #app_spec{name = Name, version = NewVersion, source = Source, env = Env} = AppSpec,
+upgrade(AppSpec, _OldVersion) ->
+    #app_spec{name = Name} = AppSpec,
 
-    %% Always fetch for upgrades - we need the new version's code
-    %% Delete existing workspace to ensure fresh clone with new ref
-    bc_gitops_workspace:delete_package(Name),
-    FetchResult = bc_gitops_workspace:fetch_package(Name, Source),
-
-    case FetchResult of
-        {ok, _} ->
-            %% Perform hot code upgrade
-            case bc_gitops_hot_reload:upgrade_app(Name, OldVersion, NewVersion) of
-                ok ->
-                    %% Update environment
-                    set_app_env(Name, Env),
-
-                    %% Update state
-                    AppState = #app_state{
-                        name = Name,
-                        version = NewVersion,
-                        status = running,
-                        path = code:lib_dir(Name),
-                        pid = undefined,
-                        started_at = calendar:universal_time(),
-                        health = unknown,
-                        env = Env
-                    },
-                    store_app_state(Name, AppState),
-                    {ok, AppState};
-                {error, Reason} ->
-                    %% Hot reload failed - try restart strategy
-                    error_logger:warning_msg(
-                        "Hot reload failed for ~p, falling back to restart: ~p~n",
-                        [Name, Reason]
-                    ),
-                    restart_upgrade(AppSpec, OldVersion)
-            end;
-        {error, Reason} ->
-            {error, {fetch_failed, Reason}}
-    end.
+    %% Version upgrades always restart for clean initialization
+    %% This ensures routes, supervisors, and app metadata are fresh
+    ok = remove(Name),
+    deploy(AppSpec).
 
 %% @doc Reconfigure an application.
 %%
@@ -253,11 +229,6 @@ deploy_existing(Name, Version, Env) ->
             {error, {start_failed, Reason}}
     end.
 
--spec restart_upgrade(#app_spec{}, binary()) -> {ok, #app_state{}} | {error, term()}.
-restart_upgrade(#app_spec{name = Name} = AppSpec, _OldVersion) ->
-    %% Fallback: stop and redeploy
-    ok = remove(Name),
-    deploy(AppSpec).
 
 %% -----------------------------------------------------------------------------
 %% Internal functions - State management
