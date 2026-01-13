@@ -46,6 +46,8 @@ parse_app_config(Config) when is_map(Config) ->
     try
         Name = get_required(name, Config, atom),
         Version = get_required(version, Config, binary),
+        Description = get_optional_binary(description, Config),
+        Icon = parse_icon_spec(maps:get(icon, Config, undefined), Name),
         Source = parse_source_spec(maps:get(source, Config, #{}), Version),
         Env = maps:get(env, Config, #{}),
         DependsOn = maps:get(depends_on, Config, []),
@@ -54,6 +56,8 @@ parse_app_config(Config) when is_map(Config) ->
         AppSpec = #app_spec{
             name = Name,
             version = Version,
+            description = Description,
+            icon = Icon,
             source = Source,
             env = Env,
             depends_on = DependsOn,
@@ -318,6 +322,61 @@ parse_source_spec(Source, AppVersion) when is_map(Source) ->
     };
 parse_source_spec(_, AppVersion) ->
     #source_spec{type = hex, ref = AppVersion}.
+
+%% @doc Parse icon spec from config.
+%% If undefined or identicon type, generates an identicon based on app name.
+%% Supported types: url, base64, identicon (or undefined for auto-identicon)
+-spec parse_icon_spec(map() | undefined, atom()) -> #icon_spec{}.
+parse_icon_spec(undefined, AppName) ->
+    %% No icon specified - generate identicon
+    DataUri = bc_gitops_identicon:to_data_uri(AppName),
+    #icon_spec{
+        type = identicon,
+        value = DataUri,
+        mime_type = <<"image/svg+xml">>
+    };
+parse_icon_spec(Icon, AppName) when is_map(Icon) ->
+    Type = to_atom_or_default(maps:get(type, Icon, identicon), identicon),
+    case Type of
+        identicon ->
+            DataUri = bc_gitops_identicon:to_data_uri(AppName),
+            #icon_spec{
+                type = identicon,
+                value = DataUri,
+                mime_type = <<"image/svg+xml">>
+            };
+        url ->
+            #icon_spec{
+                type = url,
+                value = to_binary_or_undefined(maps:get(value, Icon, undefined)),
+                mime_type = to_binary_or_undefined(maps:get(mime_type, Icon, undefined))
+            };
+        base64 ->
+            #icon_spec{
+                type = base64,
+                value = to_binary_or_undefined(maps:get(value, Icon, undefined)),
+                mime_type = to_binary_or_undefined(maps:get(mime_type, Icon, <<"image/png">>))
+            }
+    end;
+parse_icon_spec(_, AppName) ->
+    %% Invalid icon config - fall back to identicon
+    parse_icon_spec(undefined, AppName).
+
+%% @doc Convert value to binary or return undefined.
+-spec to_binary_or_undefined(term()) -> binary() | undefined.
+to_binary_or_undefined(undefined) -> undefined;
+to_binary_or_undefined(V) when is_binary(V) -> V;
+to_binary_or_undefined(V) when is_list(V) -> list_to_binary(V);
+to_binary_or_undefined(_) -> undefined.
+
+%% @doc Get optional binary field from config.
+-spec get_optional_binary(atom(), map()) -> binary() | undefined.
+get_optional_binary(Field, Config) ->
+    case maps:find(Field, Config) of
+        {ok, Value} when is_binary(Value) -> Value;
+        {ok, Value} when is_list(Value) -> list_to_binary(Value);
+        _ -> undefined
+    end.
 
 -spec parse_health_spec(map() | undefined) -> #health_spec{} | undefined.
 parse_health_spec(undefined) ->

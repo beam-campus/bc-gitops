@@ -29,12 +29,24 @@
 }).
 
 %% -----------------------------------------------------------------------------
+%% Icon Specification - visual representation of an application
+%% -----------------------------------------------------------------------------
+
+-record(icon_spec, {
+    type :: url | base64 | identicon,
+    value :: binary() | undefined,  %% URL, base64 data, or undefined for identicon
+    mime_type :: binary() | undefined  %% e.g., <<"image/png">>, <<"image/svg+xml">>
+}).
+
+%% -----------------------------------------------------------------------------
 %% App Specification - defines desired state for an application
 %% -----------------------------------------------------------------------------
 
 -record(app_spec, {
     name :: atom(),
     version :: binary(),
+    description :: binary() | undefined,  %% Human-readable description
+    icon :: #icon_spec{} | undefined,     %% App icon (falls back to identicon)
     source :: #source_spec{},
     env :: #{atom() => term()},
     health :: #health_spec{} | undefined,
@@ -48,6 +60,8 @@
 -record(app_state, {
     name :: atom(),
     version :: binary(),
+    description :: binary() | undefined,  %% Human-readable description
+    icon :: #icon_spec{} | undefined,     %% App icon
     status :: pending | starting | running | stopped | failed | upgrading,
     path :: file:filename() | undefined,
     pid :: pid() | undefined,

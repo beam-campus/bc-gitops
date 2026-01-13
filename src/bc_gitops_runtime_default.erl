@@ -60,7 +60,8 @@
 %% 4. Sets application environment
 %% 5. Starts the application
 -spec deploy(#app_spec{}) -> {ok, #app_state{}} | {error, term()}.
-deploy(#app_spec{name = Name, version = Version, source = Source, env = Env}) ->
+deploy(AppSpec) ->
+    #app_spec{name = Name, source = Source} = AppSpec,
     %% Ensure workspace is initialized
     ok = bc_gitops_workspace:init(),
 
@@ -68,10 +69,10 @@ deploy(#app_spec{name = Name, version = Version, source = Source, env = Env}) ->
     case code:lib_dir(Name) of
         {error, bad_name} ->
             %% Not in code path - need to fetch
-            deploy_from_source(Name, Version, Source, Env);
+            deploy_from_source(AppSpec, Source);
         _LibDir ->
             %% Already available - just start it
-            deploy_existing(Name, Version, Env)
+            deploy_existing(AppSpec)
     end.
 
 %% @doc Remove (stop and unload) an application.
@@ -129,7 +130,15 @@ upgrade(AppSpec, _OldVersion) ->
 %% Updates the application environment. Some applications may need
 %% to be notified of config changes (e.g., via a config_change callback).
 -spec reconfigure(#app_spec{}) -> {ok, #app_state{}} | {error, term()}.
-reconfigure(#app_spec{name = Name, version = Version, env = NewEnv}) ->
+reconfigure(AppSpec) ->
+    #app_spec{
+        name = Name,
+        version = Version,
+        description = Description,
+        icon = Icon,
+        env = NewEnv
+    } = AppSpec,
+
     %% Get old env for comparison
     OldEnv = case get_app_state(Name) of
         {ok, #app_state{env = E}} -> E;
@@ -145,7 +154,11 @@ reconfigure(#app_spec{name = Name, version = Version, env = NewEnv}) ->
     %% Update stored state
     case get_app_state(Name) of
         {ok, OldState} ->
-            NewState = OldState#app_state{env = NewEnv},
+            NewState = OldState#app_state{
+                description = Description,
+                icon = Icon,
+                env = NewEnv
+            },
             store_app_state(Name, NewState),
             {ok, NewState};
         error ->
@@ -153,6 +166,8 @@ reconfigure(#app_spec{name = Name, version = Version, env = NewEnv}) ->
             AppState = #app_state{
                 name = Name,
                 version = Version,
+                description = Description,
+                icon = Icon,
                 status = running,
                 path = code:lib_dir(Name),
                 pid = undefined,
@@ -181,18 +196,27 @@ get_current_state() ->
 %% Internal functions - Deployment
 %% -----------------------------------------------------------------------------
 
--spec deploy_from_source(atom(), binary(), #source_spec{}, map()) ->
+-spec deploy_from_source(#app_spec{}, #source_spec{}) ->
     {ok, #app_state{}} | {error, term()}.
-deploy_from_source(Name, Version, Source, Env) ->
+deploy_from_source(AppSpec, Source) ->
+    #app_spec{name = Name} = AppSpec,
     case bc_gitops_workspace:fetch_package(Name, Source) of
         {ok, _PackagePath} ->
-            deploy_existing(Name, Version, Env);
+            deploy_existing(AppSpec);
         {error, Reason} ->
             {error, {fetch_failed, Reason}}
     end.
 
--spec deploy_existing(atom(), binary(), map()) -> {ok, #app_state{}} | {error, term()}.
-deploy_existing(Name, Version, Env) ->
+-spec deploy_existing(#app_spec{}) -> {ok, #app_state{}} | {error, term()}.
+deploy_existing(AppSpec) ->
+    #app_spec{
+        name = Name,
+        version = Version,
+        description = Description,
+        icon = Icon,
+        env = Env
+    } = AppSpec,
+
     %% Set environment before starting
     set_app_env(Name, Env),
 
@@ -202,6 +226,8 @@ deploy_existing(Name, Version, Env) ->
             AppState = #app_state{
                 name = Name,
                 version = Version,
+                description = Description,
+                icon = Icon,
                 status = running,
                 path = code:lib_dir(Name),
                 pid = undefined,
@@ -216,6 +242,8 @@ deploy_existing(Name, Version, Env) ->
             AppState = #app_state{
                 name = Name,
                 version = Version,
+                description = Description,
+                icon = Icon,
                 status = running,
                 path = code:lib_dir(Name),
                 pid = undefined,
