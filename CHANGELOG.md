@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-01-13
+
+### Fixed
+
+- **Git package fetching**: Handle existing directories during fetch
+  - Previously, `fetch_git_package` always attempted `git clone`, failing when
+    the target directory already existed (e.g., after server restart)
+  - Now checks if directory exists and is a git repo:
+    - If git repo exists: does `git fetch` + `git checkout` to update
+    - If directory exists but not git repo: removes and clones fresh
+    - If directory doesn't exist: clones normally
+  - Fixes "destination path already exists" errors during reconciliation
+
 ## [0.4.0] - 2026-01-13
 
 ### Added
@@ -136,7 +149,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/beam-campus/bc-gitops/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/beam-campus/bc-gitops/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/beam-campus/bc-gitops/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/beam-campus/bc-gitops/compare/v0.2.1...v0.3.0
