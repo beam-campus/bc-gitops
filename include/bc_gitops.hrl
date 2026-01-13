@@ -113,6 +113,7 @@
 
 %% Code loading
 -define(TELEMETRY_CODE_LOAD, [bc_gitops, code, load]).
+-define(TELEMETRY_CODE_PURGE, [bc_gitops, code, purge]).
 
 %% Config parsing
 -define(TELEMETRY_PARSE_START, [bc_gitops, parse, start]).

@@ -18,7 +18,8 @@
     delete_package/1,
     get_package_path/1,
     get_ebin_paths/1,
-    cleanup/0
+    cleanup/0,
+    purge_package_modules/1
 ]).
 
 %% Internal exports for testing
@@ -62,15 +63,19 @@ fetch_package(_Name, #source_spec{type = Type}) ->
     {error, {unsupported_source_type, Type}}.
 
 %% @doc Remove a package from the workspace.
-%% Removes code paths and deletes the directory.
+%% Purges loaded modules, removes code paths, and deletes the directory.
 -spec remove_package(atom()) -> ok | {error, term()}.
 remove_package(Name) ->
     PackageDir = get_package_dir(Name),
     case filelib:is_dir(PackageDir) of
         true ->
-            %% Remove code paths first
+            %% First purge all modules loaded from this package
+            %% This is critical for hot code reloading - removing code paths
+            %% alone doesn't unload already-loaded modules from memory
+            purge_package_modules(Name),
+            %% Then remove code paths
             remove_code_paths(Name),
-            %% Then delete directory
+            %% Finally delete directory
             delete_dir_recursive(PackageDir);
         false ->
             ok
@@ -487,6 +492,50 @@ remove_code_paths(Name) ->
     PathsToRemove = [P || P <- CurrentPaths, lists:prefix(PackageDir, P)],
     lists:foreach(fun code:del_path/1, PathsToRemove),
     ok.
+
+%% @doc Purge all modules loaded from a package's ebin directories.
+%% This is necessary for proper hot code reloading - removing code paths alone
+%% doesn't unload already-loaded modules from memory.
+-spec purge_package_modules(atom()) -> ok.
+purge_package_modules(Name) ->
+    PackageDir = get_package_dir(Name),
+    %% Find all ebin directories for this package (rebar3 style)
+    EbinPaths1 = filelib:wildcard(filename:join([PackageDir, "_build", "default", "lib", "*", "ebin"])),
+    %% Also check mix dev build (mix style)
+    EbinPaths2 = filelib:wildcard(filename:join([PackageDir, "_build", "dev", "lib", "*", "ebin"])),
+    AllEbinPaths = EbinPaths1 ++ EbinPaths2,
+
+    %% Get all module names from .beam files in these directories
+    Modules = lists:flatmap(fun get_modules_in_ebin/1, AllEbinPaths),
+
+    %% Emit telemetry for module purging
+    emit_telemetry(?TELEMETRY_CODE_PURGE, #{}, #{
+        app => Name,
+        module_count => length(Modules),
+        modules => Modules
+    }),
+
+    %% Purge each module (soft_purge first, then force purge if needed)
+    lists:foreach(fun do_purge_module/1, Modules),
+    ok.
+
+-spec get_modules_in_ebin(file:filename()) -> [module()].
+get_modules_in_ebin(EbinPath) ->
+    BeamFiles = filelib:wildcard(filename:join(EbinPath, "*.beam")),
+    [list_to_atom(filename:basename(F, ".beam")) || F <- BeamFiles].
+
+-spec do_purge_module(module()) -> ok.
+do_purge_module(Module) ->
+    %% First try soft_purge - this succeeds if no process is running old code
+    case code:soft_purge(Module) of
+        true ->
+            ok;
+        false ->
+            %% Soft purge failed (processes running old code), force purge
+            %% This will kill any processes running the old code
+            code:purge(Module),
+            ok
+    end.
 
 -spec delete_dir_recursive(file:filename()) -> ok | {error, term()}.
 delete_dir_recursive(Dir) ->
