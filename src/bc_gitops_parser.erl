@@ -46,7 +46,7 @@ parse_app_config(Config) when is_map(Config) ->
     try
         Name = get_required(name, Config, atom),
         Version = get_required(version, Config, binary),
-        Source = parse_source_spec(maps:get(source, Config, #{})),
+        Source = parse_source_spec(maps:get(source, Config, #{}), Version),
         Env = maps:get(env, Config, #{}),
         DependsOn = maps:get(depends_on, Config, []),
         Health = parse_health_spec(maps:get(health, Config, undefined)),
@@ -300,17 +300,24 @@ to_atom(S) when is_list(S) -> list_to_atom(S).
 %% Internal functions - Spec parsing
 %% -----------------------------------------------------------------------------
 
--spec parse_source_spec(map()) -> #source_spec{}.
-parse_source_spec(Source) when is_map(Source) ->
+%% @doc Parse source spec with optional version for hex packages.
+%% For hex packages, if ref is not specified in source, use the app version.
+-spec parse_source_spec(map(), binary() | undefined) -> #source_spec{}.
+parse_source_spec(Source, AppVersion) when is_map(Source) ->
     Type = to_atom_or_default(maps:get(type, Source, hex), hex),
+    %% For hex packages, use app version as ref if not explicitly set in source
+    Ref = case {Type, maps:get(ref, Source, undefined)} of
+        {hex, undefined} -> AppVersion;
+        {_, ExplicitRef} -> ExplicitRef
+    end,
     #source_spec{
         type = Type,
         url = maps:get(url, Source, undefined),
         sha256 = maps:get(sha256, Source, undefined),
-        ref = maps:get(ref, Source, undefined)
+        ref = Ref
     };
-parse_source_spec(_) ->
-    #source_spec{type = hex}.
+parse_source_spec(_, AppVersion) ->
+    #source_spec{type = hex, ref = AppVersion}.
 
 -spec parse_health_spec(map() | undefined) -> #health_spec{} | undefined.
 parse_health_spec(undefined) ->
