@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-01-13
+
+### Changed
+
+- **Documentation**: Updated `guides/isolated_vm_deployment.md` with Macula Platform Integration section
+  - Explains automatic delegation to macula when available
+  - Documents delegated functions table
+  - Links to Macula Cluster API Guide
+
 ## [0.6.2] - 2026-01-13
 
 ### Added
@@ -264,7 +273,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.6.2...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.6.3...HEAD
+[0.6.3]: https://github.com/beam-campus/bc-gitops/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/beam-campus/bc-gitops/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/beam-campus/bc-gitops/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/beam-campus/bc-gitops/compare/v0.5.0...v0.6.0

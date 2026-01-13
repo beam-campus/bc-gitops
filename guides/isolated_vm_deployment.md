@@ -142,7 +142,49 @@ node().          %% => demo_web@hostname
 Node.list().     %% => [my_service@hostname]
 ```
 
-### 3. PubSub Integration
+### 3. Macula Platform Integration
+
+When bc_gitops runs on the [Macula platform](https://github.com/macula-io/macula), it automatically delegates cluster infrastructure to Macula.
+
+**How it works:**
+
+1. bc_gitops checks if `macula` module is loaded at runtime
+2. If Macula is available, clustering functions delegate to `macula:*`
+3. If Macula is not available, bc_gitops uses its own implementation
+
+```erlang
+%% bc_gitops_cluster.erl - automatic delegation
+ensure_distributed() ->
+    case macula_exports(ensure_distributed, 0) of
+        true ->
+            %% Macula owns cluster infrastructure
+            apply(macula, ensure_distributed, []);
+        false ->
+            %% Standalone mode
+            do_ensure_distributed()
+    end.
+```
+
+**Delegated functions:**
+
+| bc_gitops_cluster | macula (when available) |
+|-------------------|-------------------------|
+| `ensure_distributed/0` | `macula:ensure_distributed/0` |
+| `get_cookie/0` | `macula:get_cookie/0` |
+| `set_cookie/1` | `macula:set_cookie/1` |
+| `monitor_nodes/0` | `macula:monitor_nodes/0` |
+| `unmonitor_nodes/0` | `macula:unmonitor_nodes/0` |
+
+**Benefits of Macula integration:**
+
+- **Single source of truth** for cluster configuration
+- **Consistent cookie resolution** across all Macula applications
+- **Centralized node monitoring** and event handling
+- **bc_gitops remains standalone** when Macula is not present
+
+See the [Macula Cluster API Guide](https://hexdocs.pm/macula/cluster_api.html) for more details.
+
+### 4. PubSub Integration
 
 Phoenix.PubSub works automatically across clustered nodes:
 
