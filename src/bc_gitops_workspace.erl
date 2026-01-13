@@ -247,17 +247,28 @@ fetch_git_package(Name, Url, Ref) ->
     }),
     CloneStart = erlang:monotonic_time(),
 
-    %% Clone the repository
-    CloneCmd = case Ref of
-        undefined ->
-            io_lib:format("git clone --depth 1 \"~s\" \"~s\"", [Url, PackageDir]);
-        R ->
-            io_lib:format("git clone --depth 1 --branch \"~s\" \"~s\" \"~s\"", [R, Url, PackageDir])
+    %% Check if directory already exists
+    Result = case filelib:is_dir(PackageDir) of
+        true ->
+            %% Directory exists - check if it's a git repo and update it
+            GitDir = filename:join(PackageDir, ".git"),
+            case filelib:is_dir(GitDir) of
+                true ->
+                    %% It's a git repo - fetch and checkout the ref
+                    update_git_package(PackageDir, Ref);
+                false ->
+                    %% Not a git repo - remove and clone fresh
+                    remove_directory(PackageDir),
+                    clone_git_package(PackageDir, Url, Ref)
+            end;
+        false ->
+            %% Directory doesn't exist - clone fresh
+            clone_git_package(PackageDir, Url, Ref)
     end,
 
-    case run_cmd("/tmp", CloneCmd) of
-        {ok, _} ->
-            CloneDuration = erlang:monotonic_time() - CloneStart,
+    CloneDuration = erlang:monotonic_time() - CloneStart,
+    case Result of
+        ok ->
             emit_telemetry(?TELEMETRY_GIT_CLONE_STOP, #{duration => CloneDuration}, #{
                 app => Name,
                 url => Url,
@@ -266,7 +277,6 @@ fetch_git_package(Name, Url, Ref) ->
             }),
             compile_git_package(Name, PackageDir);
         {error, Reason} ->
-            CloneDuration = erlang:monotonic_time() - CloneStart,
             emit_telemetry(?TELEMETRY_GIT_CLONE_STOP, #{duration => CloneDuration}, #{
                 app => Name,
                 url => Url,
@@ -276,6 +286,48 @@ fetch_git_package(Name, Url, Ref) ->
             }),
             {error, {git_clone_failed, Reason}}
     end.
+
+%% Clone a git repository
+-spec clone_git_package(file:filename(), binary(), binary() | undefined) -> ok | {error, term()}.
+clone_git_package(PackageDir, Url, Ref) ->
+    CloneCmd = case Ref of
+        undefined ->
+            io_lib:format("git clone --depth 1 \"~s\" \"~s\"", [Url, PackageDir]);
+        R ->
+            io_lib:format("git clone --depth 1 --branch \"~s\" \"~s\" \"~s\"", [R, Url, PackageDir])
+    end,
+    case run_cmd("/tmp", CloneCmd) of
+        {ok, _} -> ok;
+        {error, Reason} -> {error, Reason}
+    end.
+
+%% Update an existing git repository
+-spec update_git_package(file:filename(), binary() | undefined) -> ok | {error, term()}.
+update_git_package(PackageDir, Ref) ->
+    %% Fetch latest changes
+    case run_cmd(PackageDir, "git fetch --all --prune") of
+        {ok, _} ->
+            %% Checkout the specified ref (or default branch)
+            CheckoutCmd = case Ref of
+                undefined ->
+                    "git checkout HEAD && git pull";
+                R ->
+                    io_lib:format("git checkout \"~s\" && git pull origin \"~s\"", [R, R])
+            end,
+            case run_cmd(PackageDir, CheckoutCmd) of
+                {ok, _} -> ok;
+                {error, Reason} -> {error, {checkout_failed, Reason}}
+            end;
+        {error, Reason} ->
+            {error, {fetch_failed, Reason}}
+    end.
+
+%% Remove a directory recursively
+-spec remove_directory(file:filename()) -> ok.
+remove_directory(Dir) ->
+    Cmd = io_lib:format("rm -rf \"~s\"", [Dir]),
+    run_cmd("/tmp", Cmd),
+    ok.
 
 -spec compile_git_package(atom(), file:filename()) -> {ok, file:filename()} | {error, term()}.
 compile_git_package(Name, PackageDir) ->
