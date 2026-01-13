@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-01-13
+
+### Added
+
+- **Icon and description fields** in app config schema
+  - Apps can specify `icon` (url, base64, or identicon type) and `description`
+  - Auto-generated identicons based on app name when icon not specified
+  - `bc_gitops_identicon` module generates deterministic SVG identicons
+  - `to_data_uri/1,2` for embedding icons directly in HTML
+
+- **Module purging on upgrade** (`bc_gitops_workspace`)
+  - Properly purges old modules before removing code paths
+  - Prevents stale code from persisting after hot upgrades
+  - New telemetry event: `[:bc_gitops, :code, :purge]`
+
+### Fixed
+
+- **Hex package version fetching**: Now uses app version as package ref
+  - Previously always fetched `">= 0.0.0"` (latest version)
+  - Now fetches exact version specified in app config
+
 ## [0.4.1] - 2026-01-13
 
 ### Fixed
@@ -149,7 +170,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/beam-campus/bc-gitops/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/beam-campus/bc-gitops/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/beam-campus/bc-gitops/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/beam-campus/bc-gitops/compare/v0.3.0...v0.3.1
