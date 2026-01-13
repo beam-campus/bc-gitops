@@ -3,9 +3,22 @@
 %%% This module handles Erlang distribution setup and node management
 %%% for running guest applications in separate BEAM VMs.
 %%%
-%%% == Cookie Management ==
+%%% == Macula Integration ==
 %%%
-%%% Erlang cookies are resolved in this order:
+%%% When the `macula' application is available, this module delegates
+%%% clustering operations to it. This allows macula to own the cluster
+%%% infrastructure while bc_gitops remains usable standalone.
+%%%
+%%% Delegated functions (when macula is available):
+%%% - `ensure_distributed/0' -> `macula:ensure_distributed/0'
+%%% - `get_cookie/0' -> `macula:get_cookie/0'
+%%% - `set_cookie/1' -> `macula:set_cookie/1'
+%%% - `monitor_nodes/0' -> `macula:monitor_nodes/0'
+%%% - `unmonitor_nodes/0' -> `macula:unmonitor_nodes/0'
+%%%
+%%% == Cookie Management (Fallback) ==
+%%%
+%%% When macula is not available, cookies are resolved in this order:
 %%% 1. Application env: `{bc_gitops, [{cookie, <<"secret">>}]}'
 %%% 2. Environment variable: `RELEASE_COOKIE' or `ERLANG_COOKIE'
 %%% 3. User's ~/.erlang.cookie file
@@ -41,7 +54,8 @@
 %% Internal exports for testing
 -export([
     resolve_cookie/0,
-    read_cookie_file/0
+    read_cookie_file/0,
+    macula_available/0
 ]).
 
 -define(DEFAULT_NODE_WAIT_TIMEOUT, 30000).
@@ -49,42 +63,67 @@
 -define(RPC_TIMEOUT, 5000).
 
 %% -----------------------------------------------------------------------------
-%% API
+%% API - Delegating to macula when available
 %% -----------------------------------------------------------------------------
 
 %% @doc Ensure this node is running in distributed mode.
-%% Starts distribution if not already running.
+%% Delegates to macula:ensure_distributed/0 when available.
 -spec ensure_distributed() -> ok | {error, term()}.
 ensure_distributed() ->
-    case node() of
-        nonode@nohost ->
-            start_distribution();
-        _ ->
-            %% Already distributed
-            ok
+    case macula_exports(ensure_distributed, 0) of
+        true ->
+            apply(macula, ensure_distributed, []);
+        false ->
+            do_ensure_distributed()
     end.
 
 %% @doc Get the Erlang cookie for the cluster.
-%% Resolves from config, env vars, or file. Generates if not found.
+%% Delegates to macula:get_cookie/0 when available.
 -spec get_cookie() -> atom().
 get_cookie() ->
-    case resolve_cookie() of
-        {ok, Cookie} -> Cookie;
-        {error, not_found} ->
-            %% Generate and persist a new cookie
-            NewCookie = generate_cookie(),
-            ok = persist_cookie(NewCookie),
-            NewCookie
+    case macula_exports(get_cookie, 0) of
+        true ->
+            apply(macula, get_cookie, []);
+        false ->
+            do_get_cookie()
     end.
 
 %% @doc Set the Erlang cookie for this node and persist it.
+%% Delegates to macula:set_cookie/1 when available.
 -spec set_cookie(atom() | binary()) -> ok.
-set_cookie(Cookie) when is_binary(Cookie) ->
-    set_cookie(binary_to_atom(Cookie, utf8));
-set_cookie(Cookie) when is_atom(Cookie) ->
-    true = erlang:set_cookie(node(), Cookie),
-    ok = persist_cookie(Cookie),
-    ok.
+set_cookie(Cookie) ->
+    case macula_exports(set_cookie, 1) of
+        true ->
+            apply(macula, set_cookie, [Cookie]);
+        false ->
+            do_set_cookie(Cookie)
+    end.
+
+%% @doc Subscribe to node up/down events.
+%% Delegates to macula:monitor_nodes/0 when available.
+-spec monitor_nodes() -> ok.
+monitor_nodes() ->
+    case macula_exports(monitor_nodes, 0) of
+        true ->
+            apply(macula, monitor_nodes, []);
+        false ->
+            do_monitor_nodes()
+    end.
+
+%% @doc Unsubscribe from node up/down events.
+%% Delegates to macula:unmonitor_nodes/0 when available.
+-spec unmonitor_nodes() -> ok.
+unmonitor_nodes() ->
+    case macula_exports(unmonitor_nodes, 0) of
+        true ->
+            apply(macula, unmonitor_nodes, []);
+        false ->
+            do_unmonitor_nodes()
+    end.
+
+%% -----------------------------------------------------------------------------
+%% API - bc_gitops specific (not delegated)
+%% -----------------------------------------------------------------------------
 
 %% @doc Generate a node name for a guest application.
 %%
@@ -133,21 +172,36 @@ get_hostname() ->
     {ok, Hostname} = inet:gethostname(),
     Hostname.
 
-%% @doc Subscribe to node up/down events.
--spec monitor_nodes() -> ok.
-monitor_nodes() ->
-    ok = net_kernel:monitor_nodes(true),
-    ok.
+%% -----------------------------------------------------------------------------
+%% Macula Detection
+%% -----------------------------------------------------------------------------
 
-%% @doc Unsubscribe from node up/down events.
--spec unmonitor_nodes() -> ok.
-unmonitor_nodes() ->
-    ok = net_kernel:monitor_nodes(false),
-    ok.
+%% @doc Check if macula module is available.
+-spec macula_available() -> boolean().
+macula_available() ->
+    case code:ensure_loaded(macula) of
+        {module, macula} -> true;
+        {error, _} -> false
+    end.
+
+%% @doc Check if macula exports a specific function.
+-spec macula_exports(atom(), non_neg_integer()) -> boolean().
+macula_exports(Function, Arity) ->
+    macula_available() andalso erlang:function_exported(macula, Function, Arity).
 
 %% -----------------------------------------------------------------------------
-%% Internal functions - Distribution
+%% Internal functions - Distribution (fallback)
 %% -----------------------------------------------------------------------------
+
+-spec do_ensure_distributed() -> ok | {error, term()}.
+do_ensure_distributed() ->
+    case node() of
+        nonode@nohost ->
+            start_distribution();
+        _ ->
+            %% Already distributed
+            ok
+    end.
 
 -spec start_distribution() -> ok | {error, term()}.
 start_distribution() ->
@@ -159,7 +213,7 @@ start_distribution() ->
         {ok, _Pid} ->
             ?LOG_INFO("[bc_gitops_cluster] Started distribution as ~p", [NodeName]),
             %% Set the cookie
-            Cookie = get_cookie(),
+            Cookie = do_get_cookie(),
             true = erlang:set_cookie(node(), Cookie),
             ok;
         {error, {already_started, _Pid}} ->
@@ -170,8 +224,27 @@ start_distribution() ->
     end.
 
 %% -----------------------------------------------------------------------------
-%% Internal functions - Cookie Management
+%% Internal functions - Cookie Management (fallback)
 %% -----------------------------------------------------------------------------
+
+-spec do_get_cookie() -> atom().
+do_get_cookie() ->
+    case resolve_cookie() of
+        {ok, Cookie} -> Cookie;
+        {error, not_found} ->
+            %% Generate and persist a new cookie
+            NewCookie = generate_cookie(),
+            ok = persist_cookie(NewCookie),
+            NewCookie
+    end.
+
+-spec do_set_cookie(atom() | binary()) -> ok.
+do_set_cookie(Cookie) when is_binary(Cookie) ->
+    do_set_cookie(binary_to_atom(Cookie, utf8));
+do_set_cookie(Cookie) when is_atom(Cookie) ->
+    true = erlang:set_cookie(node(), Cookie),
+    ok = persist_cookie(Cookie),
+    ok.
 
 %% @doc Resolve the cookie from various sources.
 -spec resolve_cookie() -> {ok, atom()} | {error, not_found}.
@@ -259,6 +332,20 @@ persist_cookie(Cookie) ->
             ?LOG_WARNING("[bc_gitops_cluster] Failed to persist cookie: ~p", [Reason]),
             {error, {cookie_persist_failed, Reason}}
     end.
+
+%% -----------------------------------------------------------------------------
+%% Internal functions - Node Monitoring (fallback)
+%% -----------------------------------------------------------------------------
+
+-spec do_monitor_nodes() -> ok.
+do_monitor_nodes() ->
+    ok = net_kernel:monitor_nodes(true),
+    ok.
+
+-spec do_unmonitor_nodes() -> ok.
+do_unmonitor_nodes() ->
+    ok = net_kernel:monitor_nodes(false),
+    ok.
 
 %% -----------------------------------------------------------------------------
 %% Internal functions - Node Waiting

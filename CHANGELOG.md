@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-01-13
+
+### Added
+
+- **Node monitoring for isolated VMs** (Phase 3)
+  - Reconciler subscribes to `net_kernel:monitor_nodes/1` on startup
+  - Handles `nodeup` and `nodedown` messages automatically
+  - Updates app states when their node disconnects
+  - Emits `[:bc_gitops, :cluster, :node_up]` and `[:bc_gitops, :cluster, :node_down]` telemetry
+
+### Changed
+
+- **bc_gitops_reconciler**:
+  - Now monitors cluster node events for isolated VMs
+  - Apps on disconnected nodes are marked as `stopped`/`unhealthy`
+  - Apps on reconnected nodes have their status re-verified via RPC
+
+- **bc_gitops_cluster**: Macula integration (optional dependency)
+  - Delegates to `macula` module when available for clustering operations
+  - Falls back to local implementation when macula is not present
+  - Delegated functions: `ensure_distributed/0`, `get_cookie/0`, `set_cookie/1`, `monitor_nodes/0`, `unmonitor_nodes/0`
+  - bc_gitops remains usable standalone without macula
+
 ## [0.6.1] - 2026-01-13
 
 ### Added
@@ -241,7 +264,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.6.2...HEAD
+[0.6.2]: https://github.com/beam-campus/bc-gitops/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/beam-campus/bc-gitops/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/beam-campus/bc-gitops/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/beam-campus/bc-gitops/compare/v0.4.1...v0.5.0

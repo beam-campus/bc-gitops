@@ -14,6 +14,7 @@
 -behaviour(gen_server).
 
 -include("bc_gitops.hrl").
+-include_lib("kernel/include/logger.hrl").
 
 %% API
 -export([
@@ -104,6 +105,8 @@ init(Config) ->
         current_state = #{},
         status = initializing
     },
+    %% Subscribe to node up/down events for isolated VM monitoring
+    _ = bc_gitops_cluster:monitor_nodes(),
     %% Start reconciliation loop
     self() ! init_reconcile,
     {ok, State}.
@@ -197,6 +200,20 @@ handle_info(reconcile_tick, State) ->
     end,
     %% Schedule next reconcile
     erlang:send_after(NewState#reconciler_state.reconcile_interval, self(), reconcile_tick),
+    {noreply, NewState};
+
+handle_info({nodeup, Node}, State) ->
+    %% A node has joined the cluster
+    emit_telemetry(?TELEMETRY_NODE_UP, #{}, #{node => Node}),
+    %% Check if any apps are associated with this node and update their status
+    NewState = handle_node_up(Node, State),
+    {noreply, NewState};
+
+handle_info({nodedown, Node}, State) ->
+    %% A node has left the cluster
+    emit_telemetry(?TELEMETRY_NODE_DOWN, #{}, #{node => Node}),
+    %% Mark any apps on this node as stopped/unhealthy
+    NewState = handle_node_down(Node, State),
     {noreply, NewState};
 
 handle_info(_Info, State) ->
@@ -662,6 +679,53 @@ do_upgrade(AppName, NewVersion, State) ->
         error ->
             {error, app_not_found}
     end.
+
+%% -----------------------------------------------------------------------------
+%% Internal functions - Node monitoring
+%% -----------------------------------------------------------------------------
+
+%% @doc Handle a node joining the cluster.
+%% Updates any apps that were waiting for this node to come up.
+-spec handle_node_up(node(), #reconciler_state{}) -> #reconciler_state{}.
+handle_node_up(Node, State) ->
+    %% Find apps associated with this node and update their status
+    NewCurrentState = maps:map(
+        fun(_Name, #app_state{node = AppNode, isolation = vm} = AppState)
+              when AppNode =:= Node ->
+                %% This app's node just came up - check if it's running
+                case bc_gitops_cluster:rpc_check_app(Node, AppState#app_state.name) of
+                    {ok, running} ->
+                        AppState#app_state{status = running, health = healthy};
+                    {ok, not_running} ->
+                        AppState#app_state{status = stopped, health = unhealthy};
+                    {error, _} ->
+                        AppState#app_state{status = failed, health = unknown}
+                end;
+           (_Name, AppState) ->
+                %% Not associated with this node
+                AppState
+        end,
+        State#reconciler_state.current_state
+    ),
+    State#reconciler_state{current_state = NewCurrentState}.
+
+%% @doc Handle a node leaving the cluster.
+%% Marks all apps on that node as stopped/unhealthy.
+-spec handle_node_down(node(), #reconciler_state{}) -> #reconciler_state{}.
+handle_node_down(Node, State) ->
+    %% Find apps associated with this node and mark them as down
+    NewCurrentState = maps:map(
+        fun(Name, #app_state{node = AppNode, isolation = vm} = AppState)
+              when AppNode =:= Node ->
+                ?LOG_WARNING("[bc_gitops] Node ~p down, app ~p marked as stopped", [Node, Name]),
+                AppState#app_state{status = stopped, health = unhealthy};
+           (_Name, AppState) ->
+                %% Not associated with this node
+                AppState
+        end,
+        State#reconciler_state.current_state
+    ),
+    State#reconciler_state{current_state = NewCurrentState}.
 
 %% -----------------------------------------------------------------------------
 %% Telemetry
