@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 750" width="1000" height="750">
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+    </marker>
+    <marker id="arrowhead-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4A90D9"/>
+    </marker>
+    <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4CAF50"/>
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9C27B0"/>
+    </marker>
+    <marker id="arrowhead-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FF9800"/>
+    </marker>
+    <!-- Bidirectional arrow -->
+    <marker id="arrowhead-both-start" markerWidth="10" markerHeight="7" refX="1" refY="3.5" orient="auto">
+      <polygon points="10 0, 0 3.5, 10 7" fill="#4CAF50"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="750" fill="#fafafa"/>
+
+  <!-- Title -->
+  <text x="500" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">bc_gitops Isolated VM Architecture</text>
+  <text x="500" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#888">Guest applications running in separate BEAM VMs with auto-clustering</text>
+
+  <!-- ==================== HOST VM BOX ==================== -->
+  <rect x="30" y="70" width="400" height="350" rx="10" fill="#E8F4FD" stroke="#4A90D9" stroke-width="2"/>
+  <text x="50" y="95" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#1565C0">HOST VM (demo_web@host)</text>
+
+  <!-- bc_gitops box inside host -->
+  <rect x="50" y="110" width="170" height="130" rx="8" fill="#fff" stroke="#4A90D9" stroke-width="1.5"/>
+  <text x="135" y="132" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#1565C0">bc_gitops</text>
+
+  <!-- Reconciler -->
+  <rect x="65" y="145" width="140" height="35" rx="4" fill="#E3F2FD" stroke="#2196F3" stroke-width="1"/>
+  <text x="135" y="162" text-anchor="middle" font-family="monospace" font-size="9" fill="#1565C0">reconciler</text>
+  <text x="135" y="174" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#666">Spawns VMs</text>
+
+  <!-- Cluster Manager -->
+  <rect x="65" y="185" width="140" height="35" rx="4" fill="#E8F5E9" stroke="#4CAF50" stroke-width="1"/>
+  <text x="135" y="202" text-anchor="middle" font-family="monospace" font-size="9" fill="#2E7D32">bc_gitops_cluster</text>
+  <text x="135" y="214" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#666">Cookie, Discovery</text>
+
+  <!-- Phoenix App box -->
+  <rect x="240" y="110" width="170" height="130" rx="8" fill="#fff" stroke="#9C27B0" stroke-width="1.5"/>
+  <text x="325" y="132" text-anchor="middle" font-family="monospace" font-size="11" font-weight="bold" fill="#7B1FA2">Phoenix App</text>
+
+  <!-- DashboardLive -->
+  <rect x="255" y="145" width="140" height="35" rx="4" fill="#F3E5F5" stroke="#9C27B0" stroke-width="1"/>
+  <text x="325" y="162" text-anchor="middle" font-family="monospace" font-size="9" fill="#7B1FA2">DashboardLive</text>
+  <text x="325" y="174" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#666">Renders Components</text>
+
+  <!-- PubSub -->
+  <rect x="255" y="185" width="140" height="35" rx="4" fill="#FFF3E0" stroke="#FF9800" stroke-width="1"/>
+  <text x="325" y="202" text-anchor="middle" font-family="monospace" font-size="9" fill="#E65100">Phoenix.PubSub</text>
+  <text x="325" y="214" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#666">Distributed</text>
+
+  <!-- Embedded Apps in Host -->
+  <rect x="50" y="260" width="360" height="70" rx="6" fill="#ECEFF1" stroke="#607D8B" stroke-width="1.5"/>
+  <text x="70" y="280" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#455A64">Embedded Apps (isolation: embedded)</text>
+  <g transform="translate(70, 290)">
+    <rect width="70" height="30" rx="4" fill="#fff" stroke="#90A4AE"/>
+    <text x="35" y="13" text-anchor="middle" font-family="monospace" font-size="8" fill="#546E7A">demo_tui</text>
+    <text x="35" y="24" text-anchor="middle" font-family="Arial, sans-serif" font-size="7" fill="#4CAF50">running</text>
+  </g>
+  <g transform="translate(150, 290)">
+    <rect width="80" height="30" rx="4" fill="#fff" stroke="#90A4AE"/>
+    <text x="40" y="13" text-anchor="middle" font-family="monospace" font-size="8" fill="#546E7A">demo_counter</text>
+    <text x="40" y="24" text-anchor="middle" font-family="Arial, sans-serif" font-size="7" fill="#4CAF50">running</text>
+  </g>
+  <text x="260" y="310" font-family="Arial, sans-serif" font-size="9" fill="#888">(same process space)</text>
+
+  <!-- Health Status -->
+  <rect x="50" y="345" width="170" height="55" rx="6" fill="#fff" stroke="#607D8B" stroke-width="1"/>
+  <text x="135" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#455A64">Cluster State</text>
+  <text x="135" y="380" text-anchor="middle" font-family="monospace" font-size="8" fill="#666">Node.list() = [guest_1, guest_2]</text>
+  <text x="135" y="393" text-anchor="middle" font-family="monospace" font-size="8" fill="#666">:net_kernel.monitor_nodes(true)</text>
+
+  <!-- Component Module -->
+  <rect x="240" y="345" width="170" height="55" rx="6" fill="#fff" stroke="#9C27B0" stroke-width="1"/>
+  <text x="325" y="365" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#7B1FA2">Component Module</text>
+  <text x="325" y="380" text-anchor="middle" font-family="monospace" font-size="8" fill="#666">StatsComponent</text>
+  <text x="325" y="393" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#888">(hex dep for rendering)</text>
+
+  <!-- ==================== ERLANG DISTRIBUTION LAYER ==================== -->
+  <rect x="30" y="440" width="940" height="60" rx="8" fill="#E8F5E9" stroke="#4CAF50" stroke-width="2"/>
+  <text x="500" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2E7D32">Erlang Distribution Layer</text>
+  <text x="500" y="485" text-anchor="middle" font-family="monospace" font-size="10" fill="#558B2F">Cookie: "bc_gitops_secret" | libcluster gossip | Phoenix.PubSub :pg adapter</text>
+
+  <!-- Arrows from Host to Distribution -->
+  <line x1="135" y1="400" x2="135" y2="435" stroke="#4CAF50" stroke-width="1.5" marker-end="url(#arrowhead-green)"/>
+  <line x1="325" y1="400" x2="325" y2="435" stroke="#4CAF50" stroke-width="1.5" marker-end="url(#arrowhead-green)"/>
+
+  <!-- ==================== GUEST VM 1 ==================== -->
+  <rect x="30" y="520" width="280" height="200" rx="10" fill="#FFF3E0" stroke="#FF9800" stroke-width="2"/>
+  <text x="50" y="545" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#E65100">GUEST VM 1 (demo_uptime@host)</text>
+  <text x="50" y="560" font-family="Arial, sans-serif" font-size="10" fill="#888">isolation: vm | separate OS process</text>
+
+  <!-- StatsCollector -->
+  <rect x="50" y="575" width="240" height="45" rx="6" fill="#fff" stroke="#FF9800" stroke-width="1.5"/>
+  <text x="170" y="595" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#E65100">DemoUptime.StatsCollector</text>
+  <text x="170" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">Collects VM stats every 1s</text>
+
+  <!-- PubSub Broadcast -->
+  <rect x="50" y="630" width="240" height="35" rx="6" fill="#FFF8E1" stroke="#FFB300" stroke-width="1"/>
+  <text x="170" y="650" text-anchor="middle" font-family="monospace" font-size="9" fill="#FF8F00">Phoenix.PubSub.broadcast/3</text>
+  <text x="170" y="662" text-anchor="middle" font-family="monospace" font-size="8" fill="#888">"stats:updates" -&gt; {:stats_update, data}</text>
+
+  <!-- Resource limits -->
+  <rect x="50" y="675" width="240" height="30" rx="4" fill="#ECEFF1" stroke="#607D8B" stroke-width="1"/>
+  <text x="170" y="695" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#546E7A">Memory: 512MB | Schedulers: 2</text>
+
+  <!-- Arrow from Guest 1 to Distribution -->
+  <line x1="170" y1="520" x2="170" y2="505" stroke="#FF9800" stroke-width="1.5" marker-end="url(#arrowhead-orange)"/>
+
+  <!-- ==================== GUEST VM 2 ==================== -->
+  <rect x="330" y="520" width="280" height="200" rx="10" fill="#F3E5F5" stroke="#9C27B0" stroke-width="2"/>
+  <text x="350" y="545" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#7B1FA2">GUEST VM 2 (demo_phoenix@host)</text>
+  <text x="350" y="560" font-family="Arial, sans-serif" font-size="10" fill="#888">isolation: vm | separate OS process</text>
+
+  <!-- GuestBook Component -->
+  <rect x="350" y="575" width="240" height="45" rx="6" fill="#fff" stroke="#9C27B0" stroke-width="1.5"/>
+  <text x="470" y="595" text-anchor="middle" font-family="monospace" font-size="10" font-weight="bold" fill="#7B1FA2">DemoPhoenix.GuestBook</text>
+  <text x="470" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#666">Handles guest entries</text>
+
+  <!-- PubSub Broadcast -->
+  <rect x="350" y="630" width="240" height="35" rx="6" fill="#EDE7F6" stroke="#7E57C2" stroke-width="1"/>
+  <text x="470" y="650" text-anchor="middle" font-family="monospace" font-size="9" fill="#5E35B1">Phoenix.PubSub.broadcast/3</text>
+  <text x="470" y="662" text-anchor="middle" font-family="monospace" font-size="8" fill="#888">"guests:update" -&gt; {:guest_added, data}</text>
+
+  <!-- Resource limits -->
+  <rect x="350" y="675" width="240" height="30" rx="4" fill="#ECEFF1" stroke="#607D8B" stroke-width="1"/>
+  <text x="470" y="695" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#546E7A">Memory: 256MB | Schedulers: 1</text>
+
+  <!-- Arrow from Guest 2 to Distribution -->
+  <line x1="470" y1="520" x2="470" y2="505" stroke="#9C27B0" stroke-width="1.5" marker-end="url(#arrowhead-purple)"/>
+
+  <!-- ==================== FLOW DIAGRAM ==================== -->
+  <rect x="630" y="520" width="340" height="200" rx="10" fill="#fff" stroke="#607D8B" stroke-width="2"/>
+  <text x="650" y="545" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#455A64">Message Flow</text>
+
+  <!-- Flow steps -->
+  <g transform="translate(650, 560)">
+    <!-- Step 1 -->
+    <rect x="0" y="0" width="30" height="20" rx="10" fill="#FF9800"/>
+    <text x="15" y="14" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">1</text>
+    <text x="40" y="14" font-family="Arial, sans-serif" font-size="10" fill="#333">Guest VM broadcasts stats via PubSub</text>
+  </g>
+
+  <g transform="translate(650, 590)">
+    <!-- Step 2 -->
+    <rect x="0" y="0" width="30" height="20" rx="10" fill="#4CAF50"/>
+    <text x="15" y="14" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">2</text>
+    <text x="40" y="14" font-family="Arial, sans-serif" font-size="10" fill="#333">Erlang distribution delivers to Host</text>
+  </g>
+
+  <g transform="translate(650, 620)">
+    <!-- Step 3 -->
+    <rect x="0" y="0" width="30" height="20" rx="10" fill="#2196F3"/>
+    <text x="15" y="14" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">3</text>
+    <text x="40" y="14" font-family="Arial, sans-serif" font-size="10" fill="#333">DashboardLive receives message</text>
+  </g>
+
+  <g transform="translate(650, 650)">
+    <!-- Step 4 -->
+    <rect x="0" y="0" width="30" height="20" rx="10" fill="#9C27B0"/>
+    <text x="15" y="14" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">4</text>
+    <text x="40" y="14" font-family="Arial, sans-serif" font-size="10" fill="#333">send_update() to LiveComponent</text>
+  </g>
+
+  <g transform="translate(650, 680)">
+    <!-- Step 5 -->
+    <rect x="0" y="0" width="30" height="20" rx="10" fill="#607D8B"/>
+    <text x="15" y="14" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#fff">5</text>
+    <text x="40" y="14" font-family="Arial, sans-serif" font-size="10" fill="#333">Component re-renders with new data</text>
+  </g>
+
+  <!-- ==================== EXTERNAL SERVICES ==================== -->
+  <!-- Git Repository -->
+  <rect x="460" y="70" width="140" height="70" rx="8" fill="#f5f5f5" stroke="#999" stroke-width="2"/>
+  <text x="530" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#666">Git Repository</text>
+  <text x="530" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#888">apps/demo_uptime/</text>
+  <text x="530" y="130" text-anchor="middle" font-family="monospace" font-size="9" fill="#888">isolation: vm</text>
+
+  <!-- Arrow from Git to bc_gitops -->
+  <line x1="460" y1="105" x2="225" y2="160" stroke="#666" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+  <!-- Hex.pm -->
+  <rect x="620" y="70" width="140" height="70" rx="8" fill="#f5f5f5" stroke="#999" stroke-width="2"/>
+  <text x="690" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#666">hex.pm</text>
+  <text x="690" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#888">demo_uptime v0.3.0</text>
+  <text x="690" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#888">(builds release)</text>
+
+  <!-- Arrow from hex to bc_gitops -->
+  <line x1="620" y1="125" x2="225" y2="180" stroke="#666" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrowhead)"/>
+
+  <!-- ==================== KEY BENEFITS BOX ==================== -->
+  <rect x="780" y="70" width="190" height="150" rx="8" fill="#E8F5E9" stroke="#4CAF50" stroke-width="1.5"/>
+  <text x="875" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2E7D32">Benefits</text>
+
+  <g transform="translate(795, 105)">
+    <circle cx="6" cy="6" r="4" fill="#4CAF50"/>
+    <text x="16" y="10" font-family="Arial, sans-serif" font-size="9" fill="#333">Crash isolation</text>
+  </g>
+  <g transform="translate(795, 125)">
+    <circle cx="6" cy="6" r="4" fill="#4CAF50"/>
+    <text x="16" y="10" font-family="Arial, sans-serif" font-size="9" fill="#333">Resource limits per VM</text>
+  </g>
+  <g transform="translate(795, 145)">
+    <circle cx="6" cy="6" r="4" fill="#4CAF50"/>
+    <text x="16" y="10" font-family="Arial, sans-serif" font-size="9" fill="#333">Independent upgrades</text>
+  </g>
+  <g transform="translate(795, 165)">
+    <circle cx="6" cy="6" r="4" fill="#4CAF50"/>
+    <text x="16" y="10" font-family="Arial, sans-serif" font-size="9" fill="#333">Security boundaries</text>
+  </g>
+  <g transform="translate(795, 185)">
+    <circle cx="6" cy="6" r="4" fill="#4CAF50"/>
+    <text x="16" y="10" font-family="Arial, sans-serif" font-size="9" fill="#333">Same PubSub model</text>
+  </g>
+
+  <!-- ==================== LEGEND ==================== -->
+  <g transform="translate(780, 240)">
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#333">Legend:</text>
+    <rect x="0" y="10" width="14" height="14" rx="2" fill="#E8F4FD" stroke="#4A90D9"/>
+    <text x="20" y="21" font-family="Arial, sans-serif" font-size="9" fill="#666">Host VM</text>
+    <rect x="0" y="30" width="14" height="14" rx="2" fill="#FFF3E0" stroke="#FF9800"/>
+    <text x="20" y="41" font-family="Arial, sans-serif" font-size="9" fill="#666">Guest VM (isolated)</text>
+    <rect x="0" y="50" width="14" height="14" rx="2" fill="#E8F5E9" stroke="#4CAF50"/>
+    <text x="20" y="61" font-family="Arial, sans-serif" font-size="9" fill="#666">Distribution layer</text>
+    <rect x="0" y="70" width="14" height="14" rx="2" fill="#ECEFF1" stroke="#607D8B"/>
+    <text x="20" y="81" font-family="Arial, sans-serif" font-size="9" fill="#666">Embedded apps</text>
+  </g>
+
+  <!-- ==================== COMPARISON BOX ==================== -->
+  <rect x="780" y="340" width="190" height="80" rx="8" fill="#FFEBEE" stroke="#E57373" stroke-width="1.5"/>
+  <text x="875" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#C62828">vs Embedded Mode</text>
+  <text x="795" y="380" font-family="Arial, sans-serif" font-size="9" fill="#666">Embedded: Shared crash domain</text>
+  <text x="795" y="395" font-family="Arial, sans-serif" font-size="9" fill="#666">Isolated: Separate OS processes</text>
+  <text x="795" y="410" font-family="Arial, sans-serif" font-size="9" fill="#666">Both: Same LiveComponent model</text>
+</svg>

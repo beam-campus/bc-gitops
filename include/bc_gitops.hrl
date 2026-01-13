@@ -39,6 +39,19 @@
 }).
 
 %% -----------------------------------------------------------------------------
+%% VM Configuration - settings for isolated VM deployment
+%% -----------------------------------------------------------------------------
+
+-type isolation_mode() :: embedded | vm.
+
+-record(vm_config, {
+    memory_limit :: pos_integer() | undefined,     %% Max heap size in MB (+MMmcs)
+    scheduler_limit :: pos_integer() | undefined,  %% Number of schedulers (+S)
+    node_prefix :: binary() | undefined,           %% Prefix for node name
+    extra_args :: [binary()]                       %% Additional erl/elixir CLI args
+}).
+
+%% -----------------------------------------------------------------------------
 %% App Specification - defines desired state for an application
 %% -----------------------------------------------------------------------------
 
@@ -50,7 +63,10 @@
     source :: #source_spec{},
     env :: #{atom() => term()},
     health :: #health_spec{} | undefined,
-    depends_on :: [atom()]
+    depends_on :: [atom()],
+    %% VM isolation settings (v0.6.0+)
+    isolation :: isolation_mode(),         %% embedded (default) or vm
+    vm_config :: #vm_config{} | undefined  %% Only used when isolation = vm
 }).
 
 %% -----------------------------------------------------------------------------
@@ -67,7 +83,11 @@
     pid :: pid() | undefined,
     started_at :: calendar:datetime() | undefined,
     health :: healthy | unhealthy | unknown,
-    env :: #{atom() => term()}
+    env :: #{atom() => term()},
+    %% VM isolation state (v0.6.0+)
+    isolation :: isolation_mode(),        %% embedded or vm
+    node :: node() | undefined,           %% Node where app runs (for isolation=vm)
+    os_pid :: pos_integer() | undefined   %% OS process ID (for isolation=vm)
 }).
 
 %% -----------------------------------------------------------------------------
@@ -135,5 +155,13 @@
 
 %% Health checks
 -define(TELEMETRY_HEALTH_CHECK, [bc_gitops, health, check]).
+
+%% VM isolation events (v0.6.0+)
+-define(TELEMETRY_VM_SPAWN_START, [bc_gitops, vm, spawn_start]).
+-define(TELEMETRY_VM_SPAWN_STOP, [bc_gitops, vm, spawn_stop]).
+-define(TELEMETRY_VM_STOP_START, [bc_gitops, vm, stop_start]).
+-define(TELEMETRY_VM_STOP_STOP, [bc_gitops, vm, stop_stop]).
+-define(TELEMETRY_NODE_UP, [bc_gitops, cluster, node_up]).
+-define(TELEMETRY_NODE_DOWN, [bc_gitops, cluster, node_down]).
 
 -endif.

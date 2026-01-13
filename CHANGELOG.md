@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-01-13
+
+### Added
+
+- **Isolated VM deployment** - Run guest applications in separate BEAM VMs
+  - New `isolation` field in app_spec: `embedded` (default) or `vm`
+  - New `vm_config` record for resource limits (memory, schedulers)
+  - Crash isolation: guest crashes don't affect host
+  - Auto-clustering via Erlang distribution
+  - Phoenix.PubSub works automatically across nodes
+
+- **New modules**:
+  - `bc_gitops_cluster` - Erlang distribution and cookie management
+  - `bc_gitops_vm_spawner` - Spawn and manage separate BEAM VM processes
+  - `bc_gitops_runtime_isolated` - Runtime behaviour for isolated VMs
+
+- **New telemetry events**:
+  - `[:bc_gitops, :vm, :spawn_start]` / `[:bc_gitops, :vm, :spawn_stop]`
+  - `[:bc_gitops, :vm, :stop_start]` / `[:bc_gitops, :vm, :stop_stop]`
+  - `[:bc_gitops, :cluster, :node_up]` / `[:bc_gitops, :cluster, :node_down]`
+
+- **Documentation**:
+  - `guides/isolated_vm_deployment.md` - Comprehensive operator guide
+  - `assets/isolated_vm_architecture.svg` - Architecture diagram
+
+### Changed
+
+- **app_spec record**: Added `isolation` and `vm_config` fields
+- **app_state record**: Added `isolation`, `node`, and `os_pid` fields for tracking isolated VMs
+- **Parser**: Now handles `isolation` and `vm_config` configuration
+
+### Example Configuration
+
+```erlang
+#{
+    name => demo_uptime,
+    version => <<"0.3.0">>,
+    source => #{type => hex},
+    isolation => vm,  %% Run in separate VM
+    vm_config => #{
+        memory_limit => 512,     %% 512 MB max
+        scheduler_limit => 2     %% 2 schedulers
+    },
+    env => #{http_port => 8083}
+}.
+```
+
 ## [0.5.0] - 2026-01-13
 
 ### Added
@@ -170,7 +217,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/beam-campus/bc-gitops/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/beam-campus/bc-gitops/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/beam-campus/bc-gitops/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/beam-campus/bc-gitops/compare/v0.3.1...v0.4.0

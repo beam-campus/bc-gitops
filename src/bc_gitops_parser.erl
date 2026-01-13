@@ -52,6 +52,9 @@ parse_app_config(Config) when is_map(Config) ->
         Env = maps:get(env, Config, #{}),
         DependsOn = maps:get(depends_on, Config, []),
         Health = parse_health_spec(maps:get(health, Config, undefined)),
+        %% VM isolation settings (v0.6.0+)
+        Isolation = parse_isolation_mode(maps:get(isolation, Config, embedded)),
+        VmConfig = parse_vm_config(maps:get(vm_config, Config, undefined)),
 
         AppSpec = #app_spec{
             name = Name,
@@ -61,7 +64,9 @@ parse_app_config(Config) when is_map(Config) ->
             source = Source,
             env = Env,
             depends_on = DependsOn,
-            health = Health
+            health = Health,
+            isolation = Isolation,
+            vm_config = VmConfig
         },
         {ok, AppSpec}
     catch
@@ -392,6 +397,38 @@ parse_health_spec(Health) when is_map(Health) ->
     };
 parse_health_spec(_) ->
     undefined.
+
+%% @doc Parse isolation mode (embedded or vm).
+%% Default is embedded (current behavior).
+-spec parse_isolation_mode(term()) -> isolation_mode().
+parse_isolation_mode(vm) -> vm;
+parse_isolation_mode(<<"vm">>) -> vm;
+parse_isolation_mode("vm") -> vm;
+parse_isolation_mode(embedded) -> embedded;
+parse_isolation_mode(<<"embedded">>) -> embedded;
+parse_isolation_mode("embedded") -> embedded;
+parse_isolation_mode(_) -> embedded.  %% Default to embedded for backwards compat
+
+%% @doc Parse VM configuration for isolated deployments.
+-spec parse_vm_config(map() | undefined) -> #vm_config{} | undefined.
+parse_vm_config(undefined) ->
+    undefined;
+parse_vm_config(VmConfig) when is_map(VmConfig) ->
+    #vm_config{
+        memory_limit = maps:get(memory_limit, VmConfig, undefined),
+        scheduler_limit = maps:get(scheduler_limit, VmConfig, undefined),
+        node_prefix = to_binary_or_undefined(maps:get(node_prefix, VmConfig, undefined)),
+        extra_args = parse_extra_args(maps:get(extra_args, VmConfig, []))
+    };
+parse_vm_config(_) ->
+    undefined.
+
+%% @doc Parse extra VM arguments to list of binaries.
+-spec parse_extra_args(term()) -> [binary()].
+parse_extra_args(Args) when is_list(Args) ->
+    [to_binary_or_undefined(A) || A <- Args, A =/= undefined];
+parse_extra_args(_) ->
+    [].
 
 %% @doc Convert value to atom, or return default if undefined/conversion fails.
 -spec to_atom_or_default(term(), atom()) -> atom().
