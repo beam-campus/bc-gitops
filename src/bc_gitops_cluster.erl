@@ -93,7 +93,7 @@ set_cookie(Cookie) when is_atom(Cookie) ->
 %% If vm_config has a node_prefix, it's prepended to the app name.
 -spec generate_node_name(atom(), #vm_config{} | undefined) -> node().
 generate_node_name(AppName, undefined) ->
-    generate_node_name(AppName, #vm_config{node_prefix = undefined});
+    generate_node_name(AppName, #vm_config{node_prefix = undefined, extra_args = []});
 generate_node_name(AppName, #vm_config{node_prefix = undefined}) ->
     Hostname = get_hostname(),
     list_to_atom(atom_to_list(AppName) ++ "@" ++ Hostname);

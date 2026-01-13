@@ -173,7 +173,8 @@ reconfigure(AppSpec) ->
                 pid = undefined,
                 started_at = calendar:universal_time(),
                 health = unknown,
-                env = NewEnv
+                env = NewEnv,
+                isolation = embedded
             },
             store_app_state(Name, AppState),
             {ok, AppState}
@@ -233,7 +234,8 @@ deploy_existing(AppSpec) ->
                 pid = undefined,
                 started_at = calendar:universal_time(),
                 health = unknown,
-                env = Env
+                env = Env,
+                isolation = embedded
             },
             store_app_state(Name, AppState),
             {ok, AppState};
@@ -249,6 +251,7 @@ deploy_existing(AppSpec) ->
                 pid = undefined,
                 started_at = calendar:universal_time(),
                 health = unknown,
+                isolation = embedded,
                 env = Env
             },
             store_app_state(Name, AppState),

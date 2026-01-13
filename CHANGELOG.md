@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-01-13
+
+### Added
+
+- **Reconciler integration for isolated VMs** (Phase 2)
+  - Runtime selection based on `isolation` field in app_spec
+  - Automatic dispatch to `bc_gitops_runtime_isolated` for `isolation => vm`
+  - State merging from both embedded and isolated runtimes
+  - Telemetry events now include `isolation` mode and selected runtime
+
+### Changed
+
+- **bc_gitops_reconciler**:
+  - `apply_action/2` now selects runtime based on `isolation` field
+  - `get_runtime_state/2` merges states from default and isolated runtimes
+  - Manual operations (`do_deploy`, `do_remove`, `do_upgrade`) respect isolation mode
+
+### Fixed
+
+- **bc_gitops_runtime_default**: Added missing `isolation = embedded` field to app_state records
+- **bc_gitops_cluster**: Fixed `extra_args` default value in vm_config record
+- **bc_gitops_runtime_isolated**: Changed unreachable `degraded` status to `failed`
+- **bc_gitops_vm_spawner**: Simplified `shell_escape/1` spec to match actual usage
+
 ## [0.6.0] - 2026-01-13
 
 ### Added
@@ -217,7 +241,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/beam-campus/bc-gitops/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/beam-campus/bc-gitops/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/beam-campus/bc-gitops/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/beam-campus/bc-gitops/compare/v0.4.0...v0.4.1

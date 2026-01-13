@@ -329,7 +329,7 @@ check_and_update_health(#app_state{name = Name, node = Node} = State) ->
                 {ok, not_running} ->
                     State#app_state{status = stopped, health = unhealthy};
                 {error, _} ->
-                    State#app_state{status = degraded, health = unknown}
+                    State#app_state{status = failed, health = unknown}
             end;
         pang ->
             State#app_state{status = stopped, health = unhealthy}

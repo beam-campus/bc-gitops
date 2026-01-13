@@ -269,17 +269,34 @@ reconcile_steps(State) ->
     end.
 
 -spec get_runtime_state(module(), map()) -> map().
-get_runtime_state(RuntimeMod, PreviousState) ->
-    case erlang:function_exported(RuntimeMod, get_current_state, 0) of
+get_runtime_state(DefaultRuntimeMod, PreviousState) ->
+    %% Get state from default runtime (embedded apps)
+    EmbeddedState = case erlang:function_exported(DefaultRuntimeMod, get_current_state, 0) of
         true ->
-            case RuntimeMod:get_current_state() of
+            case DefaultRuntimeMod:get_current_state() of
                 {ok, State} -> State;
-                _ -> PreviousState
+                _ -> #{}
             end;
         false ->
-            %% Runtime doesn't support state query, use previous
-            PreviousState
-    end.
+            #{}
+    end,
+
+    %% Get state from isolated runtime (VM apps)
+    IsolatedState = case erlang:function_exported(bc_gitops_runtime_isolated, get_current_state, 0) of
+        true ->
+            {ok, State2} = bc_gitops_runtime_isolated:get_current_state(),
+            State2;
+        false ->
+            #{}
+    end,
+
+    %% Merge states: embedded + isolated + any apps from previous state
+    %% that are not in either runtime (e.g., transitioning apps)
+    MergedState = maps:merge(EmbeddedState, IsolatedState),
+
+    %% Keep any apps from PreviousState that are not yet tracked by either runtime
+    %% This handles the case where an app is being deployed but not yet running
+    maps:merge(PreviousState, MergedState).
 
 -spec calculate_actions(map(), map()) -> [bc_gitops:action()].
 calculate_actions(DesiredState, CurrentState) ->
@@ -498,15 +515,25 @@ apply_actions(Actions, RuntimeMod, CurrentState) ->
     ).
 
 -spec apply_action(bc_gitops:action(), module()) -> {ok, #app_state{}} | {removed, atom()} | {error, term()}.
-apply_action({deploy, AppSpec}, RuntimeMod) ->
-    emit_telemetry(?TELEMETRY_DEPLOY_START, #{}, #{app => AppSpec#app_spec.name}),
+apply_action({deploy, AppSpec}, DefaultRuntimeMod) ->
+    RuntimeMod = select_runtime(AppSpec, DefaultRuntimeMod),
+    emit_telemetry(?TELEMETRY_DEPLOY_START, #{}, #{
+        app => AppSpec#app_spec.name,
+        isolation => AppSpec#app_spec.isolation,
+        runtime => RuntimeMod
+    }),
     Result = RuntimeMod:deploy(AppSpec),
     emit_telemetry(?TELEMETRY_DEPLOY_STOP, #{}, #{app => AppSpec#app_spec.name, result => Result}),
     Result;
 
-apply_action({remove, AppState}, RuntimeMod) ->
+apply_action({remove, AppState}, DefaultRuntimeMod) ->
     AppName = AppState#app_state.name,
-    emit_telemetry(?TELEMETRY_REMOVE_START, #{}, #{app => AppName}),
+    RuntimeMod = select_runtime_for_state(AppState, DefaultRuntimeMod),
+    emit_telemetry(?TELEMETRY_REMOVE_START, #{}, #{
+        app => AppName,
+        isolation => AppState#app_state.isolation,
+        runtime => RuntimeMod
+    }),
     Result = RuntimeMod:remove(AppName),
     emit_telemetry(?TELEMETRY_REMOVE_STOP, #{}, #{app => AppName, result => Result}),
     case Result of
@@ -514,11 +541,14 @@ apply_action({remove, AppState}, RuntimeMod) ->
         Error -> Error
     end;
 
-apply_action({upgrade, AppSpec, OldVersion}, RuntimeMod) ->
+apply_action({upgrade, AppSpec, OldVersion}, DefaultRuntimeMod) ->
+    RuntimeMod = select_runtime(AppSpec, DefaultRuntimeMod),
     emit_telemetry(?TELEMETRY_UPGRADE_START, #{}, #{
         app => AppSpec#app_spec.name,
         from_version => OldVersion,
-        to_version => AppSpec#app_spec.version
+        to_version => AppSpec#app_spec.version,
+        isolation => AppSpec#app_spec.isolation,
+        runtime => RuntimeMod
     }),
     Result = RuntimeMod:upgrade(AppSpec, OldVersion),
     emit_telemetry(?TELEMETRY_UPGRADE_STOP, #{}, #{
@@ -527,8 +557,25 @@ apply_action({upgrade, AppSpec, OldVersion}, RuntimeMod) ->
     }),
     Result;
 
-apply_action({reconfigure, AppSpec}, RuntimeMod) ->
+apply_action({reconfigure, AppSpec}, DefaultRuntimeMod) ->
+    RuntimeMod = select_runtime(AppSpec, DefaultRuntimeMod),
     RuntimeMod:reconfigure(AppSpec).
+
+%% @doc Select runtime module based on isolation mode.
+%% If isolation = vm, use bc_gitops_runtime_isolated.
+%% Otherwise, use the configured default runtime.
+-spec select_runtime(#app_spec{}, module()) -> module().
+select_runtime(#app_spec{isolation = vm}, _DefaultRuntimeMod) ->
+    bc_gitops_runtime_isolated;
+select_runtime(#app_spec{}, DefaultRuntimeMod) ->
+    DefaultRuntimeMod.
+
+%% @doc Select runtime module based on current app state's isolation mode.
+-spec select_runtime_for_state(#app_state{}, module()) -> module().
+select_runtime_for_state(#app_state{isolation = vm}, _DefaultRuntimeMod) ->
+    bc_gitops_runtime_isolated;
+select_runtime_for_state(#app_state{}, DefaultRuntimeMod) ->
+    DefaultRuntimeMod.
 
 -spec determine_status([term()], map()) -> atom().
 determine_status([], CurrentState) ->
@@ -565,7 +612,8 @@ count_healthy(CurrentState) ->
 
 -spec do_deploy(#app_spec{}, #reconciler_state{}) -> {ok, #reconciler_state{}} | {error, term()}.
 do_deploy(AppSpec, State) ->
-    RuntimeMod = State#reconciler_state.runtime_module,
+    DefaultRuntimeMod = State#reconciler_state.runtime_module,
+    RuntimeMod = select_runtime(AppSpec, DefaultRuntimeMod),
     case RuntimeMod:deploy(AppSpec) of
         {ok, AppState} ->
             NewCurrentState = maps:put(AppSpec#app_spec.name, AppState, State#reconciler_state.current_state),
@@ -576,7 +624,14 @@ do_deploy(AppSpec, State) ->
 
 -spec do_remove(atom(), #reconciler_state{}) -> {ok, #reconciler_state{}} | {error, term()}.
 do_remove(AppName, State) ->
-    RuntimeMod = State#reconciler_state.runtime_module,
+    DefaultRuntimeMod = State#reconciler_state.runtime_module,
+    %% Look up current state to determine isolation mode
+    RuntimeMod = case maps:find(AppName, State#reconciler_state.current_state) of
+        {ok, AppState} ->
+            select_runtime_for_state(AppState, DefaultRuntimeMod);
+        error ->
+            DefaultRuntimeMod
+    end,
     case RuntimeMod:remove(AppName) of
         ok ->
             NewCurrentState = maps:remove(AppName, State#reconciler_state.current_state),
@@ -592,7 +647,8 @@ do_upgrade(AppName, NewVersion, State) ->
             NewAppSpec = AppSpec#app_spec{version = NewVersion},
             case maps:find(AppName, State#reconciler_state.current_state) of
                 {ok, CurrentAppState} ->
-                    RuntimeMod = State#reconciler_state.runtime_module,
+                    DefaultRuntimeMod = State#reconciler_state.runtime_module,
+                    RuntimeMod = select_runtime(NewAppSpec, DefaultRuntimeMod),
                     case RuntimeMod:upgrade(NewAppSpec, CurrentAppState#app_state.version) of
                         {ok, NewAppState} ->
                             NewCurrentState = maps:put(AppName, NewAppState, State#reconciler_state.current_state),

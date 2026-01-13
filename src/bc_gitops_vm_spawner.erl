@@ -334,10 +334,8 @@ find_executable([Path | Rest]) ->
         false -> find_executable(Rest)
     end.
 
--spec shell_escape(string() | binary()) -> string().
-shell_escape(S) when is_binary(S) ->
-    shell_escape(binary_to_list(S));
-shell_escape(S) ->
+-spec shell_escape(string()) -> string().
+shell_escape(S) when is_list(S) ->
     "\"" ++ S ++ "\"".
 
 %% -----------------------------------------------------------------------------
