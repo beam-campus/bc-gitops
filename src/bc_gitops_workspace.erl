@@ -59,6 +59,8 @@ fetch_package(Name, #source_spec{type = hex, ref = Version}) ->
     fetch_hex_package(Name, Version);
 fetch_package(Name, #source_spec{type = git, url = Url, ref = Ref}) ->
     fetch_git_package(Name, Url, Ref);
+fetch_package(Name, #source_spec{type = mesh, mcid = Mcid}) ->
+    fetch_mesh_package(Name, Mcid);
 fetch_package(_Name, #source_spec{type = Type}) ->
     {error, {unsupported_source_type, Type}}.
 
@@ -233,6 +235,119 @@ do_fetch_hex_elixir(Name, Version, PackageDir) ->
             {ok, PackageDir};
         {error, {exit_code, Code, Output}} ->
             {error, {mix_failed, Code, Output}}
+    end.
+
+%% -----------------------------------------------------------------------------
+%% Internal - Mesh package fetching (via Macula Content System)
+%% -----------------------------------------------------------------------------
+
+-spec fetch_mesh_package(atom(), binary() | undefined) -> {ok, file:filename()} | {error, term()}.
+fetch_mesh_package(_Name, undefined) ->
+    {error, {mesh_fetch_failed, mcid_required}};
+fetch_mesh_package(Name, McidString) ->
+    PackageDir = get_package_dir(Name),
+    ok = filelib:ensure_dir(filename:join(PackageDir, "dummy")),
+
+    %% Emit telemetry for mesh fetch start
+    emit_telemetry(?TELEMETRY_MESH_FETCH_START, #{}, #{
+        app => Name,
+        mcid => McidString
+    }),
+    FetchStart = erlang:monotonic_time(),
+
+    Result = do_fetch_mesh_package(Name, McidString, PackageDir),
+
+    FetchDuration = erlang:monotonic_time() - FetchStart,
+    case Result of
+        {ok, _Path} ->
+            emit_telemetry(?TELEMETRY_MESH_FETCH_STOP, #{duration => FetchDuration}, #{
+                app => Name,
+                mcid => McidString,
+                status => success
+            });
+        {error, Reason} ->
+            emit_telemetry(?TELEMETRY_MESH_FETCH_STOP, #{duration => FetchDuration}, #{
+                app => Name,
+                mcid => McidString,
+                status => failed,
+                error => Reason
+            })
+    end,
+    Result.
+
+-spec do_fetch_mesh_package(atom(), binary(), file:filename()) ->
+    {ok, file:filename()} | {error, term()}.
+do_fetch_mesh_package(Name, McidString, PackageDir) ->
+    %% Check if macula_content is available
+    case code:ensure_loaded(macula_content) of
+        {module, macula_content} ->
+            %% Parse the MCID string
+            case macula_content:mcid_from_string(McidString) of
+                {ok, Mcid} ->
+                    %% Fetch content from the mesh
+                    case macula_content:fetch(Mcid) of
+                        {ok, TarData} ->
+                            %% Write tarball to package directory
+                            TarPath = filename:join(PackageDir, atom_to_list(Name) ++ ".tar.gz"),
+                            case file:write_file(TarPath, TarData) of
+                                ok ->
+                                    %% Extract and compile
+                                    extract_and_compile_mesh_package(Name, PackageDir, TarPath);
+                                {error, WriteError} ->
+                                    {error, {mesh_write_failed, WriteError}}
+                            end;
+                        {error, FetchError} ->
+                            {error, {mesh_fetch_failed, FetchError}}
+                    end;
+                {error, ParseError} ->
+                    {error, {mcid_parse_failed, ParseError}}
+            end;
+        {error, _} ->
+            {error, {macula_content_not_available,
+                     <<"macula_content module not loaded. Add macula as a dependency.">>}}
+    end.
+
+-spec extract_and_compile_mesh_package(atom(), file:filename(), file:filename()) ->
+    {ok, file:filename()} | {error, term()}.
+extract_and_compile_mesh_package(Name, PackageDir, TarPath) ->
+    %% Extract tarball
+    ExtractCmd = io_lib:format("tar -xzf \"~s\" -C \"~s\"", [TarPath, PackageDir]),
+    case run_cmd(PackageDir, ExtractCmd) of
+        {ok, _} ->
+            %% Find the extracted directory (might be nested)
+            ExtractedDir = find_extracted_project(PackageDir),
+            compile_git_package(Name, ExtractedDir);
+        {error, ExtractError} ->
+            {error, {mesh_extract_failed, ExtractError}}
+    end.
+
+-spec find_extracted_project(file:filename()) -> file:filename().
+find_extracted_project(PackageDir) ->
+    %% Look for mix.exs or rebar.config in package dir or one level down
+    case filelib:is_file(filename:join(PackageDir, "mix.exs")) orelse
+         filelib:is_file(filename:join(PackageDir, "rebar.config")) of
+        true ->
+            PackageDir;
+        false ->
+            %% Check subdirectories
+            case file:list_dir(PackageDir) of
+                {ok, Entries} ->
+                    SubDirs = [filename:join(PackageDir, E) || E <- Entries,
+                               filelib:is_dir(filename:join(PackageDir, E)),
+                               E =/= ".git", hd(E) =/= $.],
+                    find_project_in_subdirs(SubDirs, PackageDir);
+                {error, _} ->
+                    PackageDir
+            end
+    end.
+
+-spec find_project_in_subdirs([file:filename()], file:filename()) -> file:filename().
+find_project_in_subdirs([], Default) -> Default;
+find_project_in_subdirs([Dir | Rest], Default) ->
+    case filelib:is_file(filename:join(Dir, "mix.exs")) orelse
+         filelib:is_file(filename:join(Dir, "rebar.config")) of
+        true -> Dir;
+        false -> find_project_in_subdirs(Rest, Default)
     end.
 
 %% -----------------------------------------------------------------------------

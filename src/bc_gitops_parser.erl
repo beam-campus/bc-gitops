@@ -311,6 +311,7 @@ to_atom(S) when is_list(S) -> list_to_atom(S).
 
 %% @doc Parse source spec with optional version for hex packages.
 %% For hex packages, if ref is not specified in source, use the app version.
+%% For mesh packages, mcid is required.
 -spec parse_source_spec(map(), binary() | undefined) -> #source_spec{}.
 parse_source_spec(Source, AppVersion) when is_map(Source) ->
     Type = to_atom_or_default(maps:get(type, Source, hex), hex),
@@ -319,11 +320,14 @@ parse_source_spec(Source, AppVersion) when is_map(Source) ->
         {hex, undefined} -> AppVersion;
         {_, ExplicitRef} -> ExplicitRef
     end,
+    %% For mesh packages, mcid is the content identifier
+    Mcid = maps:get(mcid, Source, undefined),
     #source_spec{
         type = Type,
         url = maps:get(url, Source, undefined),
         sha256 = maps:get(sha256, Source, undefined),
-        ref = Ref
+        ref = Ref,
+        mcid = Mcid
     };
 parse_source_spec(_, AppVersion) ->
     #source_spec{type = hex, ref = AppVersion}.

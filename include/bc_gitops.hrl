@@ -9,10 +9,11 @@
 %% -----------------------------------------------------------------------------
 
 -record(source_spec, {
-    type :: release | git | hex,
+    type :: release | git | hex | mesh,
     url :: binary() | undefined,
     sha256 :: binary() | undefined,
-    ref :: binary() | undefined  %% For git: branch/tag/commit
+    ref :: binary() | undefined,  %% For git: branch/tag/commit
+    mcid :: binary() | undefined  %% For mesh: Macula Content Identifier
 }).
 
 %% -----------------------------------------------------------------------------
@@ -163,5 +164,9 @@
 -define(TELEMETRY_VM_STOP_STOP, [bc_gitops, vm, stop_stop]).
 -define(TELEMETRY_NODE_UP, [bc_gitops, cluster, node_up]).
 -define(TELEMETRY_NODE_DOWN, [bc_gitops, cluster, node_down]).
+
+%% Mesh content events (v0.7.0+)
+-define(TELEMETRY_MESH_FETCH_START, [bc_gitops, mesh, fetch_start]).
+-define(TELEMETRY_MESH_FETCH_STOP, [bc_gitops, mesh, fetch_stop]).
 
 -endif.

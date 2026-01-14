@@ -41,6 +41,14 @@ valid_config_with_git_source() ->
         }
     }).
 
+valid_config_with_mesh_source() ->
+    maps:merge(valid_config(), #{
+        source => #{
+            type => mesh,
+            mcid => <<"mcid1-manifest-blake3-5d41402abc4b2a76b9719d911017c592">>
+        }
+    }).
+
 %% -----------------------------------------------------------------------------
 %% parse_app_config/1 tests
 %% -----------------------------------------------------------------------------
@@ -76,6 +84,16 @@ parse_config_with_git_source_test() ->
     ?assertEqual(git, Source#source_spec.type),
     ?assertEqual(<<"https://github.com/org/repo.git">>, Source#source_spec.url),
     ?assertEqual(<<"main">>, Source#source_spec.ref).
+
+parse_config_with_mesh_source_test() ->
+    Config = valid_config_with_mesh_source(),
+    {ok, AppSpec} = bc_gitops_parser:parse_app_config(Config),
+
+    Source = AppSpec#app_spec.source,
+    ?assertEqual(mesh, Source#source_spec.type),
+    ?assertEqual(<<"mcid1-manifest-blake3-5d41402abc4b2a76b9719d911017c592">>, Source#source_spec.mcid),
+    ?assertEqual(undefined, Source#source_spec.url),
+    ?assertEqual(undefined, Source#source_spec.ref).
 
 parse_config_missing_name_test() ->
     Config = maps:remove(name, valid_config()),
