@@ -1,6 +1,6 @@
 {application, bc_gitops, [
     {description, "BEAM-native GitOps reconciler for OTP applications"},
-    {vsn, "0.6.3"},
+    {vsn, "0.7.0"},
     {registered, [bc_gitops_sup, bc_gitops_reconciler]},
     {mod, {bc_gitops_app, []}},
     {applications, [

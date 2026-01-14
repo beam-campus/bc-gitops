@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-01-14
+
+### Added
+
+- **Mesh source type** - Fetch OTP releases from the Macula mesh via MCID (Macula Content Identifier)
+  - New `mesh` source type alongside `release`, `git`, `hex`
+  - New `mcid` field in `source_spec` record for content identifier
+  - Integration with `macula_content:fetch/1` when macula is available
+  - Graceful fallback when macula is not present
+
+- **New telemetry events** for mesh fetching:
+  - `[:bc_gitops, :mesh, :fetch_start]` - Mesh fetch begins
+  - `[:bc_gitops, :mesh, :fetch_stop]` - Mesh fetch completes (success or failure)
+
+### Example Configuration
+
+```erlang
+#{
+    name => demo_app,
+    version => <<"1.0.0">>,
+    source => #{
+        type => mesh,
+        mcid => <<"mcid1-manifest-blake3-5d41402abc4b2a76b9719d911017c592">>
+    }
+}.
+```
+
+### Changed
+
+- **bc_gitops.hrl**: Added `mesh` to source type union, added `mcid` field to `source_spec` record
+- **bc_gitops_parser**: Parses `mcid` field from source configuration
+- **bc_gitops_workspace**: Added `fetch_mesh_package/2` for mesh source handling
+
 ## [0.6.3] - 2026-01-13
 
 ### Changed
@@ -273,7 +306,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive API (`bc_gitops`) for status queries and manual operations
 - Full documentation with examples
 
-[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.6.3...HEAD
+[Unreleased]: https://github.com/beam-campus/bc-gitops/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/beam-campus/bc-gitops/compare/v0.6.3...v0.7.0
 [0.6.3]: https://github.com/beam-campus/bc-gitops/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/beam-campus/bc-gitops/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/beam-campus/bc-gitops/compare/v0.6.0...v0.6.1
